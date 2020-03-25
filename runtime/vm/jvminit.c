@@ -1109,7 +1109,7 @@ initializeJavaVM(void * osMainThread, J9JavaVM ** vmPtr, J9CreateJavaVMParams *c
 		return JNI_ERR;
 	}
 
-	#if defined(J9VM_OPT_SNAPSHOTS)
+#if defined(J9VM_OPT_SNAPSHOTS)
 	if (J9_ARE_ALL_BITS_SET(createParams->flags, J9_CREATEJAVAVM_RAM_CACHE)) {
 		BOOLEAN isSnapShotRun = TRUE;
 		void *vmSnapshotImpl = NULL; /* hack to get around the lack of C++ */
@@ -1134,7 +1134,9 @@ initializeJavaVM(void * osMainThread, J9JavaVM ** vmPtr, J9CreateJavaVMParams *c
 			return JNI_ENOMEM;
 		}
 
-		setupVMSnapshotImpl(vmSnapshotImpl, vm);
+		if (!setupVMSnapshotImpl(vmSnapshotImpl, vm, isSnapShotRun)) {
+			return JNI_ENOMEM;
+		}
 
 		if (isSnapShotRun) {
 			vm->extendedRuntimeFlags2 |= J9_EXTENDED_RUNTIME2_RAMSTATE_SNAPSHOT_RUN;

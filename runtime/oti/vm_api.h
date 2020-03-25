@@ -5185,43 +5185,28 @@ throwNewJavaIoIOException(JNIEnv *env, const char *message);
 /* VMSnapshotImpl C wrappers */
 
 /**
- * Allocate memory in image heap
- *
- * @param portLibrary[in] the default port library
- * @param byteAmount[in] size to allocate
- * @param callSite[in] location memory allocation is called from
- * @param category[in] category of memory allocation
- *
- * @return pointer to allocated memory on success, NULL on failure
- */
-void* image_mem_allocate_memory(struct OMRPortLibrary *portLibrary, uintptr_t byteAmount, const char *callSite, uint32_t category);
-
-/**
- * Free memory in heap image
- *
- * @param portLibrary[in] the default port library
- * @param memoryPointer[in] pointer of address to free
- */
-void image_mem_free_memory(struct OMRPortLibrary *portLibrary, void *memoryPointer);
-
-/**
  * Creates and allocates the jvm image and its' heap
  *
  * @param javaVM[in] the java vm
+ * @param isSnapShotRun[in] specifies if snapshot creation is pending
+ * @param ramCache[in] global pointer for the ramCache
  *
  * @return 0 on fail, 1 on success
  */
 void *
-initializeVMSnapshotImpl(J9PortLibrary *portLibrary, BOOLEAN isColdRun, const char* ramCache);
+initializeVMSnapshotImpl(J9PortLibrary *portLibrary, BOOLEAN isSnapShotRun, const char* ramCache);
 
 /**
  * Initialize VMSnapshotImpl
  *
  * @param VMSnapshotImpl[in] jvmImage
  * @param javaVM[in] vm token
+ * @param isSnapShotRun[in] specifies if snapshot creation is pending
+ *
+ * @return FALSE on fail, TRUE otherwise
  */
-void
-setupVMSnapshotImpl(void *jvmImage, J9JavaVM *vm);
+BOOLEAN
+setupVMSnapshotImpl(void *jvmImage, J9JavaVM *vm, BOOLEAN isSnapShotRun);
 
 /**
  * Retrieve javaVM from JVm image
