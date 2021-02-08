@@ -399,7 +399,7 @@ final class MethodHandleResolver {
 /*[IF OPENJDK_METHODHANDLES]*/
 				/* TODO: Investigate if an equivalent for lookup.accessCheckArgRetTypes is needed for OpenJDK MH. */
 /*[ELSE] OPENJDK_METHODHANDLES*/
-				lookup.accessCheckArgRetTypes(type);
+				//lookup.accessCheckArgRetTypes(type);
 /*[ENDIF] OPENJDK_METHODHANDLES*/
 				result = lookup.findVirtual(referenceClazz, name, type);
 				break;
@@ -408,7 +408,7 @@ final class MethodHandleResolver {
 /*[IF OPENJDK_METHODHANDLES]*/
 				/* TODO: Investigate if an equivalent for lookup.accessCheckArgRetTypes is needed for OpenJDK MH. */
 /*[ELSE] OPENJDK_METHODHANDLES*/
-				lookup.accessCheckArgRetTypes(type);
+				//lookup.accessCheckArgRetTypes(type);
 /*[ENDIF] OPENJDK_METHODHANDLES*/
 				result = lookup.findStatic(referenceClazz, name, type);
 				break;
@@ -417,7 +417,7 @@ final class MethodHandleResolver {
 /*[IF OPENJDK_METHODHANDLES]*/
 				/* TODO: Investigate if an equivalent for lookup.accessCheckArgRetTypes is needed for OpenJDK MH. */
 /*[ELSE] OPENJDK_METHODHANDLES*/
-				lookup.accessCheckArgRetTypes(type);
+				//lookup.accessCheckArgRetTypes(type);
 /*[ENDIF] OPENJDK_METHODHANDLES*/
 				result = lookup.findSpecial(referenceClazz, name, type, currentClass);
 				break;
@@ -426,7 +426,7 @@ final class MethodHandleResolver {
 /*[IF OPENJDK_METHODHANDLES]*/
 				/* TODO: Investigate if an equivalent for lookup.accessCheckArgRetTypes is needed for OpenJDK MH. */
 /*[ELSE] OPENJDK_METHODHANDLES*/
-				lookup.accessCheckArgRetTypes(type);
+				//lookup.accessCheckArgRetTypes(type);
 /*[ENDIF] OPENJDK_METHODHANDLES*/
 				result = lookup.findConstructor(referenceClazz, type);
 				break;
@@ -435,7 +435,7 @@ final class MethodHandleResolver {
 /*[IF OPENJDK_METHODHANDLES]*/
 				/* TODO: Investigate if an equivalent for lookup.accessCheckArgRetTypes is needed for OpenJDK MH. */
 /*[ELSE] OPENJDK_METHODHANDLES*/
-				lookup.accessCheckArgRetTypes(type);
+				//lookup.accessCheckArgRetTypes(type);
 /*[ENDIF] OPENJDK_METHODHANDLES*/
 				result = lookup.findVirtual(referenceClazz, name, type);
 				break;
@@ -460,7 +460,7 @@ final class MethodHandleResolver {
 /*[IF OPENJDK_METHODHANDLES]*/
 		/* TODO: Investigate if an equivalent for lookup.accessCheckArgRetTypes is needed for OpenJDK MH. */
 /*[ELSE] OPENJDK_METHODHANDLES*/
-		lookup.accessCheckArgRetTypes(mt);
+		//lookup.accessCheckArgRetTypes(mt);
 /*[ENDIF] OPENJDK_METHODHANDLES*/
 		return mt.parameterType(0);
 	}
