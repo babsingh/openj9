@@ -1192,7 +1192,7 @@ public abstract class MethodHandle
 	}
 	
 	MethodHandleImpl.Intrinsic intrinsicName() {
-		throw OpenJDKCompileStub.OpenJDKCompileStubThrowError();
+		return MethodHandleImpl.Intrinsic.NONE;
 	}
 	
 	Object internalProperties() {
