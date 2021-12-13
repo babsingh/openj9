@@ -184,3 +184,12 @@ TraceEntry=Trc_Decomp_DecompileAfterMonitorEnter_Entry Overhead=1 Level=2 Templa
 TraceExit=Trc_Decomp_DecompileAfterMonitorEnter_Exit Overhead=1 Level=2 Template="DecompileAfterMonitorEnter exit: exitPC = %p, method = %p"
 TraceEntry=Trc_Decomp_DecompileOnReturn_Entry Overhead=1 Level=2 Template="DecompileOnReturn entry: pc = %p, sp = %p"
 TraceExit=Trc_Decomp_DecompileOnReturn_Exit Overhead=1 Level=2 Template="DecompileOnReturn exit: pc = %p, sp = %p, returnVal = %p"
+
+TraceEvent=Trc_Decomp_performDecompile_outgoingArgsHeader Overhead=1 Level=1 Template="performDecompile - outgoing arg count = %zu"
+TraceEvent=Trc_Decomp_performDecompile_outgoingArg Overhead=1 Level=1 Template="performDecompile - outgoing arg sp = 0x%p, object = 0x%p"
+
+TraceEvent=Trc_Decomp_buildBytecodeFrame_localArgsHeader Overhead=1 Level=1 Template="buildBytecodeFrame - local arg count = %zu"
+TraceEvent=Trc_Decomp_buildBytecodeFrame_localArg Overhead=1 Level=1 Template="buildBytecodeFrame - local arg sp = 0x%p, object = 0x%p"
+
+TraceEvent=Trc_Decomp_buildBytecodeFrame_pendingArgsHeader Overhead=1 Level=1 Template="buildBytecodeFrame - pending arg count = %zu"
+TraceEvent=Trc_Decomp_buildBytecodeFrame_pendingArg Overhead=1 Level=1 Template="buildBytecodeFrame - pending arg sp = 0x%p, object = 0x%p"

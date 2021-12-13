@@ -695,6 +695,11 @@ buildBytecodeFrame(J9VMThread *currentThread, J9OSRFrame *osrFrame)
 	sp -= numberOfLocals;
 	memcpy(sp, locals, numberOfLocals * sizeof(UDATA));
 
+	Trc_Decomp_buildBytecodeFrame_localArgsHeader(currentThread, numberOfLocals);
+	for (int i = 0; i < numberOfLocals; i++) {
+		Trc_Decomp_buildBytecodeFrame_localArg(currentThread, (sp+i), (j9object_t*)sp[i]);
+	}
+
 	/* Push the stack frame */
 	stackFrame = (J9SFStackFrame*)sp - 1;
 	stackFrame->savedPC = pc;
@@ -704,6 +709,11 @@ buildBytecodeFrame(J9VMThread *currentThread, J9OSRFrame *osrFrame)
 	/* Push the pendings */
 	sp = (UDATA*)stackFrame - pendingStackHeight;
 	memcpy(sp, pending, pendingStackHeight * sizeof(UDATA));
+
+	Trc_Decomp_buildBytecodeFrame_pendingArgsHeader(currentThread, pendingStackHeight);
+	for (int j = 0; j < pendingStackHeight; j++) {
+		Trc_Decomp_buildBytecodeFrame_pendingArg(currentThread, (sp+j), (j9object_t*)sp[j]);
+	}
 
 	/* Update the root values in the J9VMThread */
 	currentThread->arg0EA = newA0;
@@ -822,6 +832,11 @@ performDecompile(J9VMThread *currentThread, J9JITDecompileState *decompileState,
 	/* Push the outgoing arguments onto the java stack */
 	currentThread->sp -= outgoingArgCount;
 	memcpy(currentThread->sp, outgoingArgs, outgoingArgCount * sizeof(UDATA));
+
+	Trc_Decomp_performDecompile_outgoingArgsHeader(currentThread, outgoingArgCount);
+	for (int i = 0; i < outgoingArgCount; i++) {
+		Trc_Decomp_performDecompile_outgoingArg(currentThread, (currentThread->sp+i), (j9object_t*)currentThread->sp[i]);
+	}
 
 	Trc_Decomp_performDecompile_Exit(currentThread, currentThread->sp, currentThread->literals, currentThread->pc);
 }
