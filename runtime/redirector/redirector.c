@@ -147,6 +147,10 @@ static void chooseJVM(JavaVMInitArgs *args, char *retBuffer, size_t bufferLength
 static void addToLibpath(const char *dir);
 static J9StringBuffer *findDir(const char *libraryDir);
 
+#if defined(OSX)
+static void addToDyldLibraryPath(const char *dir, BOOLEAN isPrepend);
+#endif /* defined(OSX) */
+
 static J9StringBuffer* jvmBufferCat(J9StringBuffer* buffer, const char* string);
 static J9StringBuffer* jvmBufferEnsure(J9StringBuffer* buffer, UDATA len);
 static char* jvmBufferData(J9StringBuffer* buffer);
@@ -155,6 +159,8 @@ static BOOLEAN parseGCPolicy(char *buffer, int *value);
 #define MIN_GROWTH 128
 
 #define XMX	"-Xmx"
+
+#define DEBUG
 
 /* We use forward slashes here because J9VM_LIB_ARCH_DIR is not used on Windows. */
 #if (JAVA_SPEC_VERSION >= 9) || defined(OSX)
@@ -207,6 +213,50 @@ removeSuffix(char *string, const char *suffix)
 	}
 }
 #endif /* (JAVA_SPEC_VERSION == 8) || defined(AIXPPC) */
+
+#if defined(OSX)
+static void
+addToDyldLibraryPath(const char *dir, BOOLEAN isPrepend)
+{
+	char *oldPath = NULL;
+	char *newPath = NULL;
+	int rc = 0;
+	int newSize = 0;
+
+	oldPath = getenv("DYLD_LIBRARY_PATH");
+#if defined(DEBUG)
+	printf("\nDYLD_LIBRARY_PATH before = %s\n", oldPath ? oldPath : "<empty>");
+#endif /* defined(DEBUG) */
+	newSize = (oldPath ? strlen(oldPath) : 0) + strlen(dir) + 2;  /* 1 for :, 1 for \0 terminator */
+	newPath = malloc(newSize);
+
+	if(NULL == newPath) {
+		fprintf(stderr, "addToDyldLibraryPath malloc(%d) 1 failed, aborting\n", newSize);
+		abort();
+	}
+
+	if (NULL != oldPath) {
+		if (isPrepend) {
+			strcpy(newPath, dir);
+			strcat(newPath, ":");
+			strcat(newPath, oldPath);
+		} else {
+			strcpy(newPath, oldPath);
+			strcat(newPath, ":");
+			strcat(newPath, dir);
+		}
+	} else {
+		strcpy(newPath, dir);
+	}
+
+	rc = setenv("DYLD_LIBRARY_PATH", newPath, 1);
+
+#if defined(DEBUG)
+	printf("\nDYLD_LIBRARY_PATH after = %s\n", getenv("DYLD_LIBRARY_PATH"));
+#endif /* defined(DEBUG) */
+	free(newPath);
+}
+#endif /* defined(OSX) */
 
 static void
 addToLibpath(const char *dir)
@@ -1142,7 +1192,11 @@ openLibraries(const char *libraryDir)
 		return JNI_ERR;
 	}
 #else /* WIN32 */
+#if defined(OSX)
+	addToDyldLibraryPath(jvmBufferData(buffer), TRUE);
+#endif /* defined(OSX) */
 	buffer = jvmBufferCat(buffer, "/libjvm" J9PORT_LIBRARY_SUFFIX);
+	DBG_MSG(("trying %s\n", jvmBufferData(buffer)));
 	/* open the DLL and look up the symbols */
 #if defined(AIXPPC)
 	/* CMVC 137341:
