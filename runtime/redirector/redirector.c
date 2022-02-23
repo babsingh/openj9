@@ -160,7 +160,7 @@ static BOOLEAN parseGCPolicy(char *buffer, int *value);
 
 #define XMX	"-Xmx"
 
-#define DEBUG
+// #define DEBUG
 
 /* We use forward slashes here because J9VM_LIB_ARCH_DIR is not used on Windows. */
 #if (JAVA_SPEC_VERSION >= 9) || defined(OSX)
