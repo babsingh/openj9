@@ -705,13 +705,16 @@ Java_java_lang_invoke_MethodHandleNatives_expand(JNIEnv *env, jclass clazz, jobj
  * Throw NoSuchMethodError for method/constructor MemberName
  * Throw LinkageError for other
  */
-#if JAVA_SPEC_VERSION >= 16
 jobject JNICALL
-Java_java_lang_invoke_MethodHandleNatives_resolve(JNIEnv *env, jclass clazz, jobject self, jclass caller, jint lookupMode, jboolean speculativeResolve)
-#else /* JAVA_SPEC_VERSION >= 16 */
-jobject JNICALL
+#if JAVA_SPEC_VERSION == 8
+Java_java_lang_invoke_MethodHandleNatives_resolve(JNIEnv *env, jclass clazz, jobject self, jclass caller)
+#elif JAVA_SPEC_VERSION == 11 /* JAVA_SPEC_VERSION == 8 */
 Java_java_lang_invoke_MethodHandleNatives_resolve(JNIEnv *env, jclass clazz, jobject self, jclass caller, jboolean speculativeResolve)
-#endif /* JAVA_SPEC_VERSION >= 16 */
+#elif JAVA_SPEC_VERSION >= 17 /* JAVA_SPEC_VERSION == 11 */
+Java_java_lang_invoke_MethodHandleNatives_resolve(JNIEnv *env, jclass clazz, jobject self, jclass caller, jint lookupMode, jboolean speculativeResolve)
+#else /* JAVA_SPEC_VERSION == 8 */
+#error Unsupported Java_java_lang_invoke_MethodHandleNatives_resolve
+#endif /* JAVA_SPEC_VERSION == 8 */
 {
 	J9VMThread *currentThread = (J9VMThread*)env;
 	J9JavaVM *vm = currentThread->javaVM;
@@ -722,7 +725,12 @@ Java_java_lang_invoke_MethodHandleNatives_resolve(JNIEnv *env, jclass clazz, job
 	PORT_ACCESS_FROM_JAVAVM(vm);
 	vmFuncs->internalEnterVMFromJNI(currentThread);
 
+#if JAVA_SPEC_VERSION >= 11
 	Trc_JCL_java_lang_invoke_MethodHandleNatives_resolve_Entry(env, self, caller, (speculativeResolve ? "true" : "false"));
+#else /* JAVA_SPEC_VERSION >= 11 */
+	Trc_JCL_java_lang_invoke_MethodHandleNatives_resolve_Entry(env, self, caller, false);
+#endif /* JAVA_SPEC_VERSION >= 11 */
+
 	if (NULL == self) {
 		vmFuncs->setCurrentExceptionUTF(currentThread, J9VMCONSTANTPOOL_JAVALANGINTERNALERROR, NULL);
 	} else {
@@ -806,11 +814,13 @@ Java_java_lang_invoke_MethodHandleNatives_resolve(JNIEnv *env, jclass clazz, job
 			if (J9_ARE_ANY_BITS_SET(flags, MN_IS_METHOD | MN_IS_CONSTRUCTOR)) {
 				UDATA lookupOptions = 0;
 
+#if JAVA_SPEC_VERSION >= 11
 				if (JNI_TRUE == speculativeResolve) {
 					lookupOptions |= J9_LOOK_NO_THROW;
 				}
+#endif /* JAVA_SPEC_VERSION >= 11 */
 
-#if JAVA_SPEC_VERSION >= 16
+#if JAVA_SPEC_VERSION >= 17
 				/* Check CL constraint only for lookup that is not trusted (with caller) and not public (UNCONDITIONAL mode not set)
 				 * Note: UNCONDITIONAL lookupMode can only access unconditionally exported public members which assumes readablity
 				 * ie lookup class not used to determine lookup context
@@ -819,11 +829,11 @@ Java_java_lang_invoke_MethodHandleNatives_resolve(JNIEnv *env, jclass clazz, job
 				if ((NULL != callerClass) && J9_ARE_NO_BITS_SET(lookupMode, MN_UNCONDITIONAL_MODE)) {
 					lookupOptions |= J9_LOOK_CLCONSTRAINTS;
 				}
-#else
+#else /* JAVA_SPEC_VERSION >= 17 */
 				if (NULL != callerClass) {
 					lookupOptions |= J9_LOOK_CLCONSTRAINTS;
 				}
-#endif
+#endif /* JAVA_SPEC_VERSION >= 17 */
 
 				/* Determine the lookup type based on reference kind and resolved class flags */
 				switch (ref_kind)
@@ -933,9 +943,11 @@ Java_java_lang_invoke_MethodHandleNatives_resolve(JNIEnv *env, jclass clazz, job
 				J9ROMFieldShape *romField;
 				UDATA lookupOptions = 0;
 				UDATA offset = 0;
+#if JAVA_SPEC_VERSION >= 11
 				if (JNI_TRUE == speculativeResolve) {
 					lookupOptions |= J9_RESOLVE_FLAG_NO_THROW_ON_FAIL;
 				}
+#endif /* JAVA_SPEC_VERSION >= 11 */
 
 				/* MemberName doesn't differentiate if a field is static or not,
 				 * the resolve code have to attempt to resolve as instance field first,
@@ -1052,7 +1064,11 @@ Java_java_lang_invoke_MethodHandleNatives_resolve(JNIEnv *env, jclass clazz, job
 				result = vmFuncs->j9jni_createLocalRef(env, membernameObject);
 			}
 
+#if JAVA_SPEC_VERSION >= 11
 			if ((NULL == result) && (JNI_TRUE != speculativeResolve) && !VM_VMHelpers::exceptionPending(currentThread)) {
+#else /* JAVA_SPEC_VERSION >= 11 */
+			if ((NULL == result) && !VM_VMHelpers::exceptionPending(currentThread)) {
+#endif /* JAVA_SPEC_VERSION >= 11 */
 				if (J9_ARE_ANY_BITS_SET(flags, MN_IS_FIELD)) {
 					vmFuncs->setCurrentExceptionUTF(currentThread, J9VMCONSTANTPOOL_JAVALANGNOSUCHFIELDERROR, NULL);
 				} else if (J9_ARE_ANY_BITS_SET(flags, MN_IS_CONSTRUCTOR | MN_IS_METHOD)) {
@@ -1067,10 +1083,11 @@ Java_java_lang_invoke_MethodHandleNatives_resolve(JNIEnv *env, jclass clazz, job
 done:
 	j9mem_free_memory(name);
 	j9mem_free_memory(signature);
-
+#if JAVA_SPEC_VERSION >= 11
 	if ((JNI_TRUE == speculativeResolve) && VM_VMHelpers::exceptionPending(currentThread)) {
 		VM_VMHelpers::clearException(currentThread);
 	}
+#endif /* JAVA_SPEC_VERSION >= 11 */
 	Trc_JCL_java_lang_invoke_MethodHandleNatives_resolve_Exit(env);
 	vmFuncs->internalExitVMToJNI(currentThread);
 	return result;
@@ -1743,6 +1760,11 @@ Java_java_lang_invoke_MethodHandleNatives_registerNatives(JNIEnv *env, jclass cl
 	return;
 }
 
+jint JNICALL
+Java_java_lang_invoke_MethodHandleNatives_getConstant(JNIEnv *env, jclass clazz, jint kind)
+{
+	return 0;
+}
 #endif /* defined(J9VM_OPT_OPENJDK_METHODHANDLE) */
 
 #if defined (J9VM_OPT_METHOD_HANDLE) || defined(J9VM_OPT_OPENJDK_METHODHANDLE)

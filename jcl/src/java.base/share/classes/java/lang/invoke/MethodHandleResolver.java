@@ -230,9 +230,16 @@ final class MethodHandleResolver {
 		Object internalConstantPool = access.getInternalConstantPoolFromJ9Class(j9class);
 		Class<?> classObject = getClassFromJ9Class(j9class);
 
-		MethodType type = MethodTypeHelper.vmResolveFromMethodDescriptorString(methodDescriptor, access.getClassloader(classObject), null);
-		final MethodHandles.Lookup lookup = new MethodHandles.Lookup(classObject);
-		inaccessibleTypeCheck(lookup, type);
+		MethodType type = null;
+		try {
+			type = MethodTypeHelper.vmResolveFromMethodDescriptorString(methodDescriptor, access.getClassloader(classObject), null);
+		} catch(Throwable e) {
+			if (type == null) {
+				throw new BootstrapMethodError(e);
+			}
+		}
+		//final MethodHandles.Lookup lookup = new MethodHandles.Lookup(classObject);
+		//inaccessibleTypeCheck(lookup, type);
 
 		int bsmIndex = UNSAFE.getShort(bsmData);
 		int bsmArgCount = UNSAFE.getShort(bsmData + BSM_ARGUMENT_COUNT_OFFSET);
@@ -262,7 +269,9 @@ final class MethodHandleResolver {
 		 */
 		result[0] = MethodHandleNatives.linkCallSite(classObject,
 				/*[IF JAVA_SPEC_VERSION < 18] The second formal parameter was removed in Java 18 by 8272614. */
+				/*[IF JAVA_SPEC_VERSION > 8] The second formal parameter is not included in Java 8. */
 				0,
+                                /*[ENDIF] JAVA_SPEC_VERSION > 8 */
 				/*[ENDIF] JAVA_SPEC_VERSION < 18 */
 				bsm, name, type, (Object)staticArgs, appendixResult);
 
@@ -425,8 +434,8 @@ final class MethodHandleResolver {
 			throw new InternalError(com.ibm.oti.util.Msg.getString("K0686", cpRefKind)); //$NON-NLS-1$
 		}
 
-		final MethodHandles.Lookup lookup = new MethodHandles.Lookup(currentClass);
-		inaccessibleTypeCheck(lookup, mt);
+		//final MethodHandles.Lookup lookup = new MethodHandles.Lookup(currentClass);
+		//inaccessibleTypeCheck(lookup, mt);
 		
 		return MethodHandleNatives.linkMethodHandleConstant(currentClass, cpRefKind, referenceClazz, name, type);
 /*[ELSE] OPENJDK_METHODHANDLES*/

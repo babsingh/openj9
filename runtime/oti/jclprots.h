@@ -968,11 +968,15 @@ jobject JNICALL Java_java_lang_invoke_MethodType_makeTenured(JNIEnv *env, jclass
 #if defined(J9VM_OPT_OPENJDK_METHODHANDLE)
 void JNICALL Java_java_lang_invoke_MethodHandleNatives_init(JNIEnv *env, jclass clazz, jobject self, jobject ref);
 void JNICALL Java_java_lang_invoke_MethodHandleNatives_expand(JNIEnv *env, jclass clazz, jobject self);
-#if JAVA_SPEC_VERSION >= 16
-jobject JNICALL Java_java_lang_invoke_MethodHandleNatives_resolve(JNIEnv *env, jclass clazz, jobject self, jclass caller, jint lookupMode, jboolean speculativeResolve);
-#else /* JAVA_SPEC_VERSION >= 16 */
+#if JAVA_SPEC_VERSION == 8
+jobject JNICALL Java_java_lang_invoke_MethodHandleNatives_resolve(JNIEnv *env, jclass clazz, jobject self, jclass caller);
+#elif JAVA_SPEC_VERSION == 11 /* JAVA_SPEC_VERSION == 8 */
 jobject JNICALL Java_java_lang_invoke_MethodHandleNatives_resolve(JNIEnv *env, jclass clazz, jobject self, jclass caller, jboolean speculativeResolve);
-#endif /* JAVA_SPEC_VERSION >= 16 */
+#elif JAVA_SPEC_VERSION >= 17 /* JAVA_SPEC_VERSION == 11 */
+jobject JNICALL Java_java_lang_invoke_MethodHandleNatives_resolve(JNIEnv *env, jclass clazz, jobject self, jclass caller, jint lookupMode, jboolean speculativeResolve);
+#else /* JAVA_SPEC_VERSION == 8 */
+#error Unsupported Java_java_lang_invoke_MethodHandleNatives_resolve
+#endif /* JAVA_SPEC_VERSION == 8 */
 jint JNICALL Java_java_lang_invoke_MethodHandleNatives_getMembers(JNIEnv *env, jclass clazz, jclass defc, jstring matchName, jstring matchSig, jint matchFlags, jclass caller, jint skip, jobjectArray results);
 jlong JNICALL Java_java_lang_invoke_MethodHandleNatives_objectFieldOffset(JNIEnv *env, jclass clazz, jobject self);
 jlong JNICALL Java_java_lang_invoke_MethodHandleNatives_staticFieldOffset(JNIEnv *env, jclass clazz, jobject self);
@@ -984,6 +988,7 @@ void JNICALL Java_java_lang_invoke_MethodHandleNatives_copyOutBootstrapArguments
 void JNICALL Java_java_lang_invoke_MethodHandleNatives_clearCallSiteContext(JNIEnv *env, jclass clazz, jobject context);
 jint JNICALL Java_java_lang_invoke_MethodHandleNatives_getNamedCon(JNIEnv *env, jclass clazz, jint which, jobjectArray name);
 void JNICALL Java_java_lang_invoke_MethodHandleNatives_registerNatives(JNIEnv *env, jclass clazz);
+jint JNICALL Java_java_lang_invoke_MethodHandleNatives_getConstant(JNIEnv *env, jclass clazz, jint kind);
 #endif /* defined(J9VM_OPT_OPENJDK_METHODHANDLE) */
 
 /* java_lang_invoke_VarHandle.c */
