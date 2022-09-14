@@ -126,6 +126,7 @@ getVMThread(J9VMThread *currentThread, jthread thread, J9VMThread **vmThreadPtr,
 	if (isVirtualThread) {
 		omrthread_monitor_enter(vm->liveVirtualThreadListMutex);
 
+		printf("passed vthread list mutex wait\n");
 		while (J9OBJECT_I64_LOAD(currentThread, threadObject, vm->virtualThreadInspectorCountOffset) < 0) {
 			/* Thread is currently in the process of mounting/unmounting, wait. */
 			vm->internalVMFunctions->internalExitVMToJNI(currentThread);
@@ -133,7 +134,7 @@ getVMThread(J9VMThread *currentThread, jthread thread, J9VMThread **vmThreadPtr,
 			vm->internalVMFunctions->internalEnterVMFromJNI(currentThread);
 			threadObject = J9_JNI_UNWRAP_REFERENCE(thread);
 		}
-
+		printf("passed vthread list mutex wait\n");
 		jint vthreadState = J9VMJAVALANGVIRTUALTHREAD_STATE(currentThread, threadObject);
 		j9object_t carrierThread = (j9object_t)J9VMJAVALANGVIRTUALTHREAD_CARRIERTHREAD(currentThread, threadObject);
 		if (NULL != carrierThread) {
@@ -850,8 +851,9 @@ getVirtualThreadState(J9VMThread *currentThread, jthread thread)
 			rc = JVMTI_JAVA_LANG_THREAD_STATE_TERMINATED;
 			break;
 		default:
-			Assert_JVMTI_unreachable();
-			rc = JVMTI_ERROR_INTERNAL;
+			printf("vthread state unreachable = 0x%X\n", vThreadState);
+			//Assert_JVMTI_unreachable();
+			//rc = JVMTI_ERROR_INTERNAL;
 		}
 		releaseVMThread(currentThread, targetThread, thread);
 	} else {
