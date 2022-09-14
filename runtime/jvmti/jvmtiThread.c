@@ -226,6 +226,10 @@ jvmtiSuspendThread(jvmtiEnv* env,
 		ENSURE_PHASE_LIVE(env);
 		ENSURE_CAPABILITY(env, can_suspend);
 
+		if (NULL != thread) {
+			ENSURE_JTHREAD(currentThread, thread);
+		}
+
 		rc = suspendThread(currentThread, thread, TRUE, &currentThreadSuspended);
 
 		/* If the current thread was suspended, block now until it is resumed */
@@ -276,7 +280,7 @@ jvmtiSuspendThreadList(jvmtiEnv* env,
 			currentThreadEverSuspended |= currentThreadSuspended;
 		}
 
-		/* If the current thread appeared in the list (and was marked as suspended), block now until the thread is resumed */
+		/* If the current thread appeared in the list (and was marked as suspended), block now until the thread is resumed. */
 
 		if (currentThreadEverSuspended) {
 			vm->internalVMFunctions->internalExitVMToJNI(currentThread);
@@ -308,6 +312,8 @@ jvmtiResumeThread(jvmtiEnv* env,
 
 		ENSURE_PHASE_LIVE(env);
 		ENSURE_CAPABILITY(env, can_suspend);
+		ENSURE_JTHREAD_NON_NULL(thread);
+		ENSURE_JTHREAD(currentThread, thread);
 
 		rc = resumeThread(currentThread, thread);
 
@@ -1072,12 +1078,29 @@ resumeThread(J9VMThread * currentThread, jthread thread)
 	J9VMThread *targetThread = NULL;
 	jvmtiError rc = getVMThread(currentThread, thread, &targetThread, FALSE, TRUE);
 	if (rc == JVMTI_ERROR_NONE) {
-		if (targetThread->publicFlags & J9_PUBLIC_FLAGS_HALT_THREAD_JAVA_SUSPEND) {
-			clearHaltFlag(targetThread, J9_PUBLIC_FLAGS_HALT_THREAD_JAVA_SUSPEND);
-			Trc_JVMTI_threadResumed(targetThread);
-		} else {
-			rc = JVMTI_ERROR_THREAD_NOT_SUSPENDED;
+#if JAVA_SPEC_VERSION >= 19
+		j9object_t threadObject = J9_JNI_UNWRAP_REFERENCE(thread);
+		if (NULL != targetThread)
+#endif /* JAVA_SPEC_VERSION >= 19 */
+		{
+			if (OMR_ARE_ANY_BITS_SET(targetThread->publicFlags, J9_PUBLIC_FLAGS_HALT_THREAD_JAVA_SUSPEND)) {
+				clearHaltFlag(targetThread, J9_PUBLIC_FLAGS_HALT_THREAD_JAVA_SUSPEND);
+				Trc_JVMTI_threadResumed(targetThread);
+			} else {
+				rc = JVMTI_ERROR_THREAD_NOT_SUSPENDED;
+			}
 		}
+#if JAVA_SPEC_VERSION >= 19
+		else if (IS_VIRTUAL_THREAD(currentThread, threadObject)) {
+			/* targetThread is NULL only for unmounted virtual threads. */
+			jint vthreadState = J9VMJAVALANGVIRTUALTHREAD_STATE(currentThread, threadObject);
+			if (OMR_ARE_NO_BITS_SET(vthreadState, JVMTI_VTHREAD_STATE_SUSPENDED)) {
+				rc = JVMTI_ERROR_THREAD_NOT_SUSPENDED;
+			} else {
+				J9VMJAVALANGVIRTUALTHREAD_SET_STATE(currentThread, threadObject, vthreadState & ~JVMTI_VTHREAD_STATE_SUSPENDED);
+			}
+		}
+#endif /* JAVA_SPEC_VERSION >= 19 */
 		releaseVMThread(currentThread, targetThread, thread);
 	}
 
@@ -1248,22 +1271,141 @@ done:
 
 #if JAVA_SPEC_VERSION >= 19
 jvmtiError JNICALL
-jvmtiSuspendAllVirtualThreads(jvmtiEnv* env,
+jvmtiSuspendAllVirtualThreads(jvmtiEnv *env,
 	jint except_count,
-	const jthread* except_list)
+	const jthread *except_list)
 {
-	assert(!"jvmtiSuspendAllVirtualThreads unimplemented");
-	return JVMTI_ERROR_NONE;
-}
+	J9JavaVM *vm = JAVAVM_FROM_ENV(env);
+	J9VMThread *currentThread = NULL;
+	jvmtiError rc = JVMTI_ERROR_NONE;
 
+	Trc_JVMTI_jvmtiSuspendAllVirtualThreads_Entry(env);
+
+	rc = getCurrentVMThread(vm, &currentThread);
+	if (JVMTI_ERROR_NONE == rc) {
+		jint i = 0;
+		UDATA currentThreadEverSuspended = FALSE;
+
+		omrthread_monitor_enter(vm->liveVirtualThreadListMutex);
+		vm->internalVMFunctions->internalEnterVMFromJNI(currentThread);
+
+		ENSURE_PHASE_LIVE(env);
+		ENSURE_CAPABILITY(env, can_suspend);
+		ENSURE_CAPABILITY(env, can_support_virtual_threads);
+
+		ENSURE_NON_NEGATIVE(except_count);
+		if ((NULL == except_list) && (0 != except_count)) {
+			JVMTI_ERROR(JVMTI_ERROR_NULL_POINTER);
+		}
+
+		for (i = 0; i < except_count; ++i) {
+			jthread thread = except_list[i];
+			if ((NULL == thread)
+			|| !IS_VIRTUAL_THREAD(currentThread, J9_JNI_UNWRAP_REFERENCE(thread))
+			) {
+				JVMTI_ERROR(JVMTI_ERROR_INVALID_THREAD);
+			}
+		}
+
+		/* Walk all virtual threads. */
+		if (NULL != vm->liveVirtualThreadList) {
+			j9object_t root = *(vm->liveVirtualThreadList);
+			/* Skip the root, which is a dummy virtual thread and global ref. */
+			j9object_t walkVirtualThread = J9OBJECT_OBJECT_LOAD(currentThread, root, vm->virtualThreadLinkNextOffset);
+			do {
+				BOOLEAN suspend = TRUE;
+				for (i = 0; i < except_count; ++i) {
+					if (walkVirtualThread == J9_JNI_UNWRAP_REFERENCE(except_list[i])) {
+						suspend = FALSE;
+						break;
+					}
+				}
+				if (suspend) {
+					UDATA currentThreadSuspended = 0;
+					/* Ignore errors if the virtual thread is already suspended. */
+					suspendThread(currentThread, (jthread)&walkVirtualThread, FALSE, &currentThreadSuspended);
+					currentThreadEverSuspended |= currentThreadSuspended;
+				}
+				walkVirtualThread = J9OBJECT_OBJECT_LOAD(currentThread, walkVirtualThread, vm->virtualThreadLinkNextOffset);
+			} while (root != walkVirtualThread);
+		}
+
+		/* If the current thread appeared in the list (and was marked as suspended), block now until the thread is resumed. */
+		if (currentThreadEverSuspended) {
+			vm->internalVMFunctions->internalExitVMToJNI(currentThread);
+			setHaltFlag(currentThread, J9_PUBLIC_FLAGS_HALT_THREAD_JAVA_SUSPEND);
+			vm->internalVMFunctions->internalEnterVMFromJNI(currentThread);
+		}
+
+done:
+		vm->internalVMFunctions->internalExitVMToJNI(currentThread);
+		omrthread_monitor_exit(vm->liveVirtualThreadListMutex);
+	}
+
+	TRACE_JVMTI_RETURN(jvmtiSuspendAllVirtualThreads);
+}
 
 jvmtiError JNICALL
-jvmtiResumeAllVirtualThreads(jvmtiEnv* env,
+jvmtiResumeAllVirtualThreads(jvmtiEnv *env,
 	jint except_count,
-	const jthread* except_list)
+	const jthread *except_list)
 {
-	assert(!"jvmtiResumeAllVirtualThreads unimplemented");
-	return JVMTI_ERROR_NONE;
+	J9JavaVM *vm = JAVAVM_FROM_ENV(env);
+	J9VMThread *currentThread = NULL;
+	jvmtiError rc = JVMTI_ERROR_NONE;
+
+	Trc_JVMTI_jvmtiResumeAllVirtualThreads_Entry(env);
+
+	rc = getCurrentVMThread(vm, &currentThread);
+	if (rc == JVMTI_ERROR_NONE) {
+		jint i = 0;
+
+		omrthread_monitor_enter(vm->liveVirtualThreadListMutex);
+		vm->internalVMFunctions->internalEnterVMFromJNI(currentThread);
+
+		ENSURE_PHASE_LIVE(env);
+		ENSURE_CAPABILITY(env, can_suspend);
+		ENSURE_CAPABILITY(env, can_support_virtual_threads);
+
+		ENSURE_NON_NEGATIVE(except_count);
+		if ((NULL == except_list) && (0 != except_count)) {
+			JVMTI_ERROR(JVMTI_ERROR_NULL_POINTER);
+		}
+
+		for (i = 0; i < except_count; ++i) {
+			jthread thread = except_list[i];
+			if ((NULL == thread)
+			|| !IS_VIRTUAL_THREAD(currentThread, J9_JNI_UNWRAP_REFERENCE(thread))
+			) {
+				JVMTI_ERROR(JVMTI_ERROR_INVALID_THREAD);
+			}
+		}
+
+		/* Walk all virtual threads. */
+		if (NULL != vm->liveVirtualThreadList) {
+			j9object_t root = *(vm->liveVirtualThreadList);
+			/* Skip the root, which is a dummy virtual thread and global ref. */
+			j9object_t walkVirtualThread = J9OBJECT_OBJECT_LOAD(currentThread, root, vm->virtualThreadLinkNextOffset);
+			do {
+				BOOLEAN resume = TRUE;
+				for (i = 0; i < except_count; ++i) {
+					if (walkVirtualThread == J9_JNI_UNWRAP_REFERENCE(except_list[i])) {
+						resume = FALSE;
+						break;
+					}
+				}
+				if (resume) {
+					/* Ignore errors if the virtual thread is already resumed. */
+					resumeThread(currentThread, (jthread)&walkVirtualThread);
+				}
+				walkVirtualThread = J9OBJECT_OBJECT_LOAD(currentThread, walkVirtualThread, vm->virtualThreadLinkNextOffset);
+			} while (root != walkVirtualThread);
+		}
+done:
+		vm->internalVMFunctions->internalExitVMToJNI(currentThread);
+		omrthread_monitor_exit(vm->liveVirtualThreadListMutex);
+	}
+
+	TRACE_JVMTI_RETURN(jvmtiResumeAllVirtualThreads);
 }
 #endif /* JAVA_SPEC_VERSION >= 19 */
-
