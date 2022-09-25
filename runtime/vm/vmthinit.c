@@ -91,8 +91,10 @@ UDATA initializeVMThreading(J9JavaVM *vm)
 #endif /* JAVA_SPEC_VERSION >= 16 */
 
 #if JAVA_SPEC_VERSION >= 19
-		/* Held when adding or removing a virtual thread from the list at virtual thread start or terminate. */
-		omrthread_monitor_init_with_name(&vm->liveVirtualThreadListMutex, 0, "Live virtual thread list mutex") ||
+		/* Held when adding or removing a virtual thread from the list at virtual thread first mount and last unmount. */
+		omrthread_monitor_init_with_name(&vm->virtualThreadListMutex, 0, "Virtual thread list mutex") ||
+		/* Held when incrementing or decrementing virtualThreadInspectorCount for inspecting a virtual thread. */
+		omrthread_monitor_init_with_name(&vm->virtualThreadInspectorMutex, 0, "Virtual thread inspector mutex") ||
 		omrthread_monitor_init_with_name(&vm->tlsFinalizersMutex, 0, "TLS finalizers mutex") ||
 		omrthread_monitor_init_with_name(&vm->tlsPoolMutex, 0, "TLS pool mutex") ||
 #endif /* JAVA_SPEC_VERSION >= 19 */
@@ -194,9 +196,13 @@ void terminateVMThreading(J9JavaVM *vm)
 #endif /* JAVA_SPEC_VERSION >= 16 */
 
 #if JAVA_SPEC_VERSION >= 19
-	if (NULL != vm->liveVirtualThreadListMutex) {
-		omrthread_monitor_destroy(vm->liveVirtualThreadListMutex);
-		vm->liveVirtualThreadListMutex = NULL;
+	if (NULL != vm->virtualThreadListMutex) {
+		omrthread_monitor_destroy(vm->virtualThreadListMutex);
+		vm->virtualThreadListMutex = NULL;
+	}
+	if (NULL != vm->virtualThreadInspectorMutex) {
+		omrthread_monitor_destroy(vm->virtualThreadInspectorMutex);
+		vm->virtualThreadInspectorMutex = NULL;
 	}
 	if (NULL != vm->tlsFinalizersMutex) {
 		omrthread_monitor_destroy(vm->tlsFinalizersMutex);
