@@ -127,12 +127,12 @@ getVMThread(J9VMThread *currentThread, jthread thread, J9VMThread **vmThreadPtr,
 #if JAVA_SPEC_VERSION >= 19
 	isVirtualThread = IS_VIRTUAL_THREAD(currentThread, threadObject);
 	if (isVirtualThread) {
-		omrthread_monitor_enter(vm->liveVirtualThreadListMutex);
+		omrthread_monitor_enter(vm->virtualThreadInspectorMutex);
 
 		while (J9OBJECT_I64_LOAD(currentThread, threadObject, vm->virtualThreadInspectorCountOffset) < 0) {
 			/* Thread is currently in the process of mounting/unmounting, wait. */
 			vm->internalVMFunctions->internalExitVMToJNI(currentThread);
-			omrthread_monitor_wait(vm->liveVirtualThreadListMutex);
+			omrthread_monitor_wait(vm->virtualThreadInspectorMutex);
 			vm->internalVMFunctions->internalEnterVMFromJNI(currentThread);
 			threadObject = J9_JNI_UNWRAP_REFERENCE(thread);
 		}
@@ -154,7 +154,7 @@ getVMThread(J9VMThread *currentThread, jthread thread, J9VMThread **vmThreadPtr,
 		if (mustBeAlive) {
 #if JAVA_SPEC_VERSION >= 19
 			if (isVirtualThread) {
-				omrthread_monitor_exit(vm->liveVirtualThreadListMutex);
+				omrthread_monitor_exit(vm->virtualThreadInspectorMutex);
 			}
 #endif /* JAVA_SPEC_VERSION >= 19 */
 			omrthread_monitor_exit(vm->vmThreadListMutex);
@@ -171,7 +171,7 @@ getVMThread(J9VMThread *currentThread, jthread thread, J9VMThread **vmThreadPtr,
 		I_64 vthreadInspectorCount = J9OBJECT_I64_LOAD(currentThread, threadObject, vm->virtualThreadInspectorCountOffset) + 1;
 		Assert_JVMTI_true(vthreadInspectorCount > 0);
 		J9OBJECT_I64_STORE(currentThread, threadObject, vm->virtualThreadInspectorCountOffset, vthreadInspectorCount);
-		omrthread_monitor_exit(vm->liveVirtualThreadListMutex);
+		omrthread_monitor_exit(vm->virtualThreadInspectorMutex);
 	}
 #endif /* JAVA_SPEC_VERSION >= 19 */
 	omrthread_monitor_exit(vm->vmThreadListMutex);
@@ -197,15 +197,15 @@ releaseVMThread(J9VMThread *currentThread, J9VMThread *targetThread, jthread thr
 			J9JavaVM *vm = currentThread->javaVM;
 			I_64 vthreadInspectorCount = 0;
 			/* Release the virtual thread (allow it to die) now that we are no longer inspecting it. */
-			omrthread_monitor_enter(vm->liveVirtualThreadListMutex);
+			omrthread_monitor_enter(vm->virtualThreadInspectorMutex);
 			vthreadInspectorCount = J9OBJECT_I64_LOAD(currentThread, threadObject, vm->virtualThreadInspectorCountOffset);
 			Assert_JVMTI_true(vthreadInspectorCount > 0);
 			vthreadInspectorCount -= 1;
 			J9OBJECT_I64_STORE(currentThread, threadObject, vm->virtualThreadInspectorCountOffset, vthreadInspectorCount);
 			if (0 == vthreadInspectorCount) {
-				omrthread_monitor_notify_all(vm->liveVirtualThreadListMutex);
+				omrthread_monitor_notify_all(vm->virtualThreadInspectorMutex);
 			}
-			omrthread_monitor_exit(vm->liveVirtualThreadListMutex);
+			omrthread_monitor_exit(vm->virtualThreadInspectorMutex);
 		}
 	}
 #endif /* JAVA_SPEC_VERSION >= 19 */

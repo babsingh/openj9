@@ -5781,8 +5781,10 @@ typedef struct J9JavaVM {
 	struct J9HashTable* ensureHashedClasses;
 #if JAVA_SPEC_VERSION >= 19
 	U_64 nextTID;
-	j9object_t *liveVirtualThreadList;
-	omrthread_monitor_t liveVirtualThreadListMutex;
+	j9object_t *virtualThreadList;
+	omrthread_monitor_t virtualThreadInspectorMutex;
+	omrthread_monitor_t virtualThreadListMutex;
+	volatile BOOLEAN inspectVirtualThreadList;
 	UDATA virtualThreadLinkNextOffset;
 	UDATA virtualThreadLinkPreviousOffset;
 	UDATA virtualThreadInspectorCountOffset;
