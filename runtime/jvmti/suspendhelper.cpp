@@ -77,6 +77,14 @@ suspendThread(J9VMThread *currentThread, jthread thread, UDATA allowNull, BOOLEA
 				J9VMJAVALANGVIRTUALTHREAD_SET_STATE(currentThread, threadObject, vthreadState | JVMTI_VTHREAD_STATE_SUSPENDED);
 			}
 		}
+		if (IS_VIRTUAL_THREAD(currentThread, threadObject)) {
+			jint vthreadState = J9VMJAVALANGVIRTUALTHREAD_STATE(currentThread, threadObject);
+			if (NULL == targetThread) {
+				printf("suspend vthread: threadObj=0x%p, targetThread=0x%p, state=0x%x, publicFlags=%zx\n", threadObject, targetThread, vthreadState, (UDATA)0);
+			} else {
+				printf("suspend vthread: threadObj=0x%p, targetThread=0x%p, state=0x%x, publicFlags=%zx\n", threadObject, targetThread, vthreadState, targetThread->publicFlags);
+			}
+		}
 #endif /* JAVA_SPEC_VERSION >= 19 */
 		releaseVMThread(currentThread, targetThread, thread);
 	}
