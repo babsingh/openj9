@@ -454,16 +454,8 @@ typedef struct jvmtiGcp_translation {
 
 #define ENSURE_JOBJECT_NON_NULL(var) ENSURE_JNI_OBJECT_NON_NULL((var), JVMTI_ERROR_INVALID_OBJECT)
 #define ENSURE_JCLASS_NON_NULL(var) ENSURE_JNI_OBJECT_NON_NULL((var), JVMTI_ERROR_INVALID_CLASS)
-#define ENSURE_JTHREAD_NON_NULL(var) ENSURE_JNI_OBJECT_NON_NULL((var), JVMTI_ERROR_INVALID_THREAD)
 #define ENSURE_JTHREADGROUP_NON_NULL(var) ENSURE_JNI_OBJECT_NON_NULL((var), JVMTI_ERROR_INVALID_THREAD_GROUP)
 #define ENSURE_JOBJECT_NON_NULL(var) ENSURE_JNI_OBJECT_NON_NULL((var), JVMTI_ERROR_INVALID_OBJECT)
-
-#define ENSURE_JTHREAD(vmThread, jthrd) \
-    do { \
-        if (!isSameOrSuperClassOf(J9VMJAVALANGTHREAD_OR_NULL((vmThread->javaVM)), J9OBJECT_CLAZZ((vmThread), *((j9object_t *) (jthrd))))) { \
-            JVMTI_ERROR(JVMTI_ERROR_INVALID_THREAD); \
-        } \
-    } while(0)
 
 #define ENSURE_JCLASS(vmThread, jcls) \
     do { \
@@ -489,7 +481,9 @@ typedef struct jvmtiGcp_translation {
 #if JAVA_SPEC_VERSION >= 19
 #define ENSURE_JTHREAD_NOT_VIRTUAL(vmThread, jthrd, error) \
 	do { \
-		if (IS_VIRTUAL_THREAD((vmThread), J9_JNI_UNWRAP_REFERENCE(jthrd))) { \
+		if ((NULL != (jthrd)) \
+		&& IS_VIRTUAL_THREAD(vmThread, J9_JNI_UNWRAP_REFERENCE(jthrd)) \
+		) { \
 			JVMTI_ERROR(error); \
 		} \
 	} while(0)
@@ -515,7 +509,6 @@ typedef struct jvmtiGcp_translation {
 #define ENSURE_JFIELDID_NON_NULL(var)
 #define ENSURE_JOBJECT_NON_NULL(var)
 #define ENSURE_JCLASS_NON_NULL(var)
-#define ENSURE_JTHREAD_NON_NULL(var)
 #define ENSURE_JTHREADGROUP_NON_NULL(var)
 #define ENSURE_VALID_HEAP_OBJECT_FILTER(var)
 #define ENSURE_MONITOR_NON_NULL(var)

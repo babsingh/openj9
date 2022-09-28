@@ -113,6 +113,9 @@ getVMThread(J9VMThread *currentThread, jthread thread, J9VMThread **vmThreadPtr,
 		return JVMTI_ERROR_INVALID_THREAD;
 	} else {
 		threadObject = J9_JNI_UNWRAP_REFERENCE(thread);
+		if (!IS_JTHREAD(currentThread, threadObject)) {
+			return JVMTI_ERROR_INVALID_THREAD;
+		}
 		if (currentThread->threadObject == threadObject) {
 			*vmThreadPtr = currentThread;
 			return JVMTI_ERROR_NONE;

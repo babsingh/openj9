@@ -359,6 +359,9 @@ static const struct { \
 #define IS_VIRTUAL_THREAD(vmThread, object) \
 	isSameOrSuperClassOf(J9VMJAVALANGBASEVIRTUALTHREAD((vmThread)->javaVM), J9OBJECT_CLAZZ(vmThread, object))
 
+#define IS_JTHREAD(vmThread, object) \
+	isSameOrSuperClassOf(J9VMJAVALANGTHREAD_OR_NULL((vmThread)->javaVM), J9OBJECT_CLAZZ(vmThread, object))
+
 #if defined(OPENJ9_BUILD)
 #define J9_SHARED_CACHE_DEFAULT_BOOT_SHARING(vm) TRUE
 #else /* defined(OPENJ9_BUILD) */

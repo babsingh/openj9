@@ -52,15 +52,14 @@ jvmtiGetThreadState(jvmtiEnv *env,
 	if (JVMTI_ERROR_NONE == rc) {
 		J9VMThread *targetThread = NULL;
 		j9object_t threadObject = NULL;
-		j9object_t threadObjectLock = NULL;
 		jboolean threadStartedFlag = JNI_FALSE;
+
 		vm->internalVMFunctions->internalEnterVMFromJNI(currentThread);
 
 		ENSURE_PHASE_LIVE(env);
 		ENSURE_NON_NULL(thread_state_ptr);
 
 		if (NULL != thread) {
-			ENSURE_JTHREAD(currentThread, thread);
 			threadObject = J9_JNI_UNWRAP_REFERENCE(thread);
 		} else {
 			/* If the thread is NULL, then use the current thread. */
@@ -76,26 +75,21 @@ jvmtiGetThreadState(jvmtiEnv *env,
 		} else
 #endif /* JAVA_SPEC_VERSION >= 19 */
 		{
-			/* Get the lock for the object. */
-			threadObjectLock = J9VMJAVALANGTHREAD_LOCK(currentThread,threadObject);
-
-			/* Get the vmThread for the object and whether the thread has been started, we get
-			 * these under the thread object lock so that we get a consistent view of the two values.
-			 */
-			if (NULL != threadObjectLock) {
-				rc = getVMThread(currentThread, thread, &targetThread, TRUE, FALSE);
-				threadStartedFlag = (jboolean)J9VMJAVALANGTHREAD_STARTED(currentThread, threadObject);
-			} else {
-				/* In this case, we must be early in the thread creation. We still need to call getVMThread so that
-				 * the inspection count etc. are handled correctly, however, we just want to fall into the case were
-				 * we return that the thread is NEW so we set the targetThread and threadStartedFlag to false.
-				 */
-				rc = getVMThread(currentThread, thread, &targetThread, TRUE, FALSE);
-				targetThread = NULL;
-				threadStartedFlag = JNI_FALSE;
-			}
-
+			rc = getVMThread(currentThread, thread, &targetThread, TRUE, FALSE);
 			if (JVMTI_ERROR_NONE == rc) {
+				/* Get the lock for the object. */
+				j9object_t threadObjectLock = J9VMJAVALANGTHREAD_LOCK(currentThread,threadObject);
+				if (NULL != threadObjectLock) {
+					threadStartedFlag = (jboolean)J9VMJAVALANGTHREAD_STARTED(currentThread, threadObject);
+				} else {
+					/* In this case, we must be early in the thread creation. We still need to call getVMThread so that
+					* the inspection count etc. are handled correctly, however, we just want to fall into the case were
+					* we return that the thread is NEW so we set the targetThread and threadStartedFlag to false.
+					*/
+					targetThread = NULL;
+					threadStartedFlag = JNI_FALSE;
+				}
+
 				/* We use the values of targetThread and threadStartedFlag that were obtained while holding the lock on the
 				 * thread so that get a consistent view of the values.  This is needed because if we don't get a consistent view
 				 * we may think the thread is TERMINATED instead of just starting.
@@ -366,8 +360,6 @@ jvmtiStopThread(jvmtiEnv *env,
 		ENSURE_CAPABILITY(env, can_signal_thread);
 
 		ENSURE_JOBJECT_NON_NULL(exception);
-
-		ENSURE_JTHREAD_NON_NULL(thread);
 #if JAVA_SPEC_VERSION >= 19
 		ENSURE_JTHREAD_NOT_VIRTUAL(currentThread, thread, JVMTI_ERROR_UNSUPPORTED_OPERATION);
 #endif /* JAVA_SPEC_VERSION >= 19 */
@@ -738,10 +730,6 @@ jvmtiGetOwnedMonitorStackDepthInfo(jvmtiEnv *env,
 
 		ENSURE_NON_NULL(monitor_info_count_ptr);
 		ENSURE_NON_NULL(monitor_info_ptr);
-
-		if (NULL != thread) {
-			ENSURE_JTHREAD(currentThread, thread);
-		}
 		
 		rv_monitor_info_count = 0;
 		
@@ -950,7 +938,6 @@ jvmtiRunAgentThread(jvmtiEnv *env,
 
 		ENSURE_PHASE_LIVE(env);
 
-		ENSURE_JTHREAD_NON_NULL(thread);
 #if JAVA_SPEC_VERSION >= 19
 		ENSURE_JTHREAD_NOT_VIRTUAL(currentThread, thread, JVMTI_ERROR_UNSUPPORTED_OPERATION);
 #endif /* JAVA_SPEC_VERSION >= 19 */

@@ -435,9 +435,7 @@ jvmtiPopFrame(jvmtiEnv* env,
 		ENSURE_CAPABILITY(env, can_pop_frame);
 
 #if JAVA_SPEC_VERSION >= 19
-		if (NULL != thread) {
-			ENSURE_JTHREAD_NOT_VIRTUAL(currentThread, thread, JVMTI_ERROR_OPAQUE_FRAME);
-		}
+		ENSURE_JTHREAD_NOT_VIRTUAL(currentThread, thread, JVMTI_ERROR_OPAQUE_FRAME);
 #endif /* JAVA_SPEC_VERSION >= 19 */
 
 		rc = getVMThread(currentThread, thread, &targetThread, FALSE, TRUE);

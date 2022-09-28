@@ -1466,9 +1466,7 @@ jvmtiGetOSThreadID(jvmtiEnv* jvmti_env, ...)
 		ENSURE_NON_NULL(threadid_ptr);
 
 #if JAVA_SPEC_VERSION >= 19
-		if (NULL != thread) {
-			ENSURE_JTHREAD_NOT_VIRTUAL(currentThread, thread, JVMTI_ERROR_UNSUPPORTED_OPERATION);
-		}
+		ENSURE_JTHREAD_NOT_VIRTUAL(currentThread, thread, JVMTI_ERROR_UNSUPPORTED_OPERATION);
 #endif /* JAVA_SPEC_VERSION >= 19 */
 
 		rc = getVMThread(currentThread, thread, &targetThread, TRUE, TRUE);
@@ -3455,7 +3453,6 @@ jvmtiGetJ9vmThread(jvmtiEnv *env, ...)
 		vm->internalVMFunctions->internalEnterVMFromJNI(currentThread);
 
 		ENSURE_PHASE_START_OR_LIVE(env);
-		ENSURE_JTHREAD_NON_NULL(thread);
 		ENSURE_NON_NULL(vmThreadPtr);
 
 		rc = getVMThread(currentThread, thread, &targetThread, TRUE, TRUE);
