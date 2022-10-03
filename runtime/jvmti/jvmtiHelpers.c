@@ -217,7 +217,7 @@ releaseVMThread(J9VMThread *currentThread, J9VMThread *targetThread, jthread thr
 			Assert_JVMTI_true(vthreadInspectorCount > 0);
 			vthreadInspectorCount -= 1;
 			J9OBJECT_I64_STORE(currentThread, threadObject, vm->virtualThreadInspectorCountOffset, vthreadInspectorCount);
-			if (0 == vthreadInspectorCount) {
+			if (!vm->inspectingLiveVirtualThreadList && (0 == vthreadInspectorCount)) {
 				omrthread_monitor_notify_all(vm->liveVirtualThreadListMutex);
 			}
 			omrthread_monitor_exit(vm->liveVirtualThreadListMutex);
