@@ -1142,12 +1142,17 @@ resumeThread(J9VMThread *currentThread, jthread thread)
 #if JAVA_SPEC_VERSION >= 19
 		else {
 			/* targetThread is NULL only for virtual threads as per the assertion in getVMThread. */
-			jint vthreadState = J9VMJAVALANGVIRTUALTHREAD_STATE(currentThread, threadObject);
-			if (OMR_ARE_NO_BITS_SET(vthreadState, JVMTI_VTHREAD_STATE_SUSPENDED)) {
+			if (0 == J9OBJECT_I64_LOAD(currentThread, threadObject, vm->isSuspendedByJVMTIOffset)) {
 				rc = JVMTI_ERROR_THREAD_NOT_SUSPENDED;
 			} else {
-				J9VMJAVALANGVIRTUALTHREAD_SET_STATE(currentThread, threadObject, vthreadState & ~JVMTI_VTHREAD_STATE_SUSPENDED);
+				J9OBJECT_I64_STORE(currentThread, threadObject, vm->isSuspendedByJVMTIOffset, 0);
 			}
+			// jint vthreadState = J9VMJAVALANGVIRTUALTHREAD_STATE(currentThread, threadObject);
+			// if (OMR_ARE_NO_BITS_SET(vthreadState, JVMTI_VTHREAD_STATE_SUSPENDED)) {
+			// 	rc = JVMTI_ERROR_THREAD_NOT_SUSPENDED;
+			// } else {
+			// 	J9VMJAVALANGVIRTUALTHREAD_SET_STATE(currentThread, threadObject, vthreadState & ~JVMTI_VTHREAD_STATE_SUSPENDED);
+			// }
 		}
 #endif /* JAVA_SPEC_VERSION >= 19 */
 		releaseVMThread(currentThread, targetThread, thread);

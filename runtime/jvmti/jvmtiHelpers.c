@@ -875,6 +875,9 @@ getVirtualThreadState(J9VMThread *currentThread, jthread thread)
 				Assert_JVMTI_unreachable();
 				rc = JVMTI_ERROR_INTERNAL;
 			}
+			if (0 != J9OBJECT_I64_LOAD(currentThread, vThreadObject, vm->isSuspendedByJVMTIOffset)) {
+				rc  |= JVMTI_THREAD_STATE_SUSPENDED;
+			}
 		}
 		releaseVMThread(currentThread, targetThread, thread);
 	} else {

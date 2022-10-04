@@ -355,11 +355,15 @@ JVM_VirtualThreadMountEnd(JNIEnv *env, jobject thread, jboolean firstMount)
 	 * end of mount and JVMTI_VTHREAD_STATE_SUSPENDED is removed from VirtualThread.state.
 	 * This forces the thread to suspend instead of keep running after it has been suspended.
 	 */
-	jint vthreadState = J9VMJAVALANGVIRTUALTHREAD_STATE(currentThread, threadObj);
-	if (OMR_ARE_ANY_BITS_SET(vthreadState, JVMTI_VTHREAD_STATE_SUSPENDED)) {
-		J9VMJAVALANGVIRTUALTHREAD_SET_STATE(currentThread, threadObj, vthreadState & ~JVMTI_VTHREAD_STATE_SUSPENDED);
+	if (0 != J9OBJECT_I64_LOAD(currentThread, threadObj, vm->isSuspendedByJVMTIOffset)) {
+		J9OBJECT_I64_STORE(currentThread, threadObj, vm->isSuspendedByJVMTIOffset, 0);
 		vmFuncs->setHaltFlag(currentThread, J9_PUBLIC_FLAGS_HALT_THREAD_JAVA_SUSPEND);
 	}
+	// jint vthreadState = J9VMJAVALANGVIRTUALTHREAD_STATE(currentThread, threadObj);
+	// if (OMR_ARE_ANY_BITS_SET(vthreadState, JVMTI_VTHREAD_STATE_SUSPENDED)) {
+	// 	J9VMJAVALANGVIRTUALTHREAD_SET_STATE(currentThread, threadObj, vthreadState & ~JVMTI_VTHREAD_STATE_SUSPENDED);
+	// 	vmFuncs->setHaltFlag(currentThread, J9_PUBLIC_FLAGS_HALT_THREAD_JAVA_SUSPEND);
+	// }
 
 	f_monitorNotifyAll(vm->liveVirtualThreadListMutex);
 	f_monitorExit(vm->liveVirtualThreadListMutex);

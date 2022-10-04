@@ -5787,6 +5787,7 @@ typedef struct J9JavaVM {
 	UDATA virtualThreadLinkNextOffset;
 	UDATA virtualThreadLinkPreviousOffset;
 	UDATA virtualThreadInspectorCountOffset;
+	UDATA isSuspendedByJVMTIOffset;
 	UDATA tlsOffset;
 	j9_tls_finalizer_t tlsFinalizers[J9JVMTI_MAX_TLS_KEYS];
 	omrthread_monitor_t tlsFinalizersMutex;

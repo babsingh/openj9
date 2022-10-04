@@ -39,6 +39,7 @@ suspendThread(J9VMThread *currentThread, jthread thread, BOOLEAN allowNull, BOOL
 	}
 	rc = getVMThread(currentThread, thread, &targetThread, JVMTI_ERROR_NONE, flags);
 	if (rc == JVMTI_ERROR_NONE) {
+		J9JavaVM *vm = currentThread->javaVM;
 #if JAVA_SPEC_VERSION >= 19
 		j9object_t threadObject = (NULL == thread) ? currentThread->threadObject : J9_JNI_UNWRAP_REFERENCE(thread);
 		if (NULL != targetThread)
@@ -54,7 +55,7 @@ suspendThread(J9VMThread *currentThread, jthread thread, BOOLEAN allowNull, BOOL
 					if (currentThread == targetThread) {
 						*currentThreadSuspended = TRUE;
 					} else {
-						currentThread->javaVM->internalVMFunctions->internalExitVMToJNI(currentThread);
+						vm->internalVMFunctions->internalExitVMToJNI(currentThread);
 						omrthread_monitor_enter(targetThread->publicFlagsMutex);
 						VM_VMAccess::setHaltFlagForVMAccessRelease(targetThread, J9_PUBLIC_FLAGS_HALT_THREAD_JAVA_SUSPEND);
 						if (VM_VMAccess::mustWaitForVMAccessRelease(targetThread)) {
@@ -63,7 +64,7 @@ suspendThread(J9VMThread *currentThread, jthread thread, BOOLEAN allowNull, BOOL
 							}
 						}
 						omrthread_monitor_exit(targetThread->publicFlagsMutex);
-						currentThread->javaVM->internalVMFunctions->internalEnterVMFromJNI(currentThread);
+						vm->internalVMFunctions->internalEnterVMFromJNI(currentThread);
 					}
 					Trc_JVMTI_threadSuspended(targetThread);
 				}
@@ -72,12 +73,17 @@ suspendThread(J9VMThread *currentThread, jthread thread, BOOLEAN allowNull, BOOL
 #if JAVA_SPEC_VERSION >= 19
 		else {
 			/* targetThread is NULL only for virtual threads as per the assertion in getVMThread. */
-			jint vthreadState = J9VMJAVALANGVIRTUALTHREAD_STATE(currentThread, threadObject);
-			if (OMR_ARE_ANY_BITS_SET(vthreadState, JVMTI_VTHREAD_STATE_SUSPENDED)) {
+			if (0 != J9OBJECT_I64_LOAD(currentThread, threadObject, vm->isSuspendedByJVMTIOffset)) {
 				rc = JVMTI_ERROR_THREAD_SUSPENDED;
 			} else {
-				J9VMJAVALANGVIRTUALTHREAD_SET_STATE(currentThread, threadObject, vthreadState | JVMTI_VTHREAD_STATE_SUSPENDED);
+				J9OBJECT_I64_STORE(currentThread, threadObject, vm->isSuspendedByJVMTIOffset, -1);
 			}
+			// jint vthreadState = J9VMJAVALANGVIRTUALTHREAD_STATE(currentThread, threadObject);
+			// if (OMR_ARE_ANY_BITS_SET(vthreadState, JVMTI_VTHREAD_STATE_SUSPENDED)) {
+			// 	rc = JVMTI_ERROR_THREAD_SUSPENDED;
+			// } else {
+			// 	J9VMJAVALANGVIRTUALTHREAD_SET_STATE(currentThread, threadObject, vthreadState | JVMTI_VTHREAD_STATE_SUSPENDED);
+			// }
 		}
 #endif /* JAVA_SPEC_VERSION >= 19 */
 		releaseVMThread(currentThread, targetThread, thread);
