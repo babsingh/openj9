@@ -521,41 +521,7 @@ jvmtiGetThreadInfo(jvmtiEnv *env,
 				if (isVirtual) {
 					/* For virtual threads, check its state. */
 					if (JVMTI_VTHREAD_STATE_TERMINATED != J9VMJAVALANGVIRTUALTHREAD_STATE(currentThread, threadObject)) {
-						/* The thread group of a virtual thread is always j.l.Thread$Constants.VTHREAD_GROUP. */
-						JNIEnv *jniEnv = (JNIEnv *)currentThread;
-						jclass constants = vm->jlThreadConstants;
-						jfieldID id = vm->vthreadGroupID;
-						jobject tempGroup = NULL;
-
-						vm->internalVMFunctions->internalExitVMToJNI(currentThread);
-						if ((NULL == constants) || (NULL == id)) {
-							/* Cache class and field id. */
-							jclass localRef = (*jniEnv)->FindClass(jniEnv, "java/lang/Thread$Constants");
-							Assert_JVMTI_notNull(localRef);
-							constants = (jclass)((*jniEnv)->NewGlobalRef(jniEnv, localRef));
-							if (NULL == constants) {
-								releaseVMThread(currentThread, targetThread, thread);
-								j9mem_free_memory(name);
-								rc = JVMTI_ERROR_OUT_OF_MEMORY;
-								goto exit;
-							}
-							id = (*jniEnv)->GetStaticFieldID(jniEnv, constants, "VTHREAD_GROUP", "Ljava/lang/ThreadGroup;");
-							if (NULL == id) {
-								releaseVMThread(currentThread, targetThread, thread);
-								j9mem_free_memory(name);
-								rc = JVMTI_ERROR_OUT_OF_MEMORY;
-								goto exit;
-							}
-
-							vm->jlThreadConstants = constants;
-							vm->vthreadGroupID = id;
-						}
-
-						tempGroup = (*jniEnv)->GetStaticObjectField(jniEnv, constants, id);
-						Assert_JVMTI_notNull(tempGroup);
-						vm->internalVMFunctions->internalEnterVMFromJNI(currentThread);
-
-						group = J9_JNI_UNWRAP_REFERENCE(tempGroup);
+						group = J9_JNI_UNWRAP_REFERENCE(vm->vthreadGroup);
 						threadObject = (NULL == thread) ? targetThread->threadObject : J9_JNI_UNWRAP_REFERENCE(thread);
 					}
 				} else {
