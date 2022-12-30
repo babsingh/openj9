@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2000, 2021 IBM Corp. and others
+# Copyright (c) 2000, 2023 IBM Corp. and others
 #
 # This program and the accompanying materials are made available under
 # the terms of the Eclipse Public License 2.0 which accompanies this
@@ -609,4 +609,20 @@ J9NLS_JVMTI_COM_IBM_JVM_DEREGISTER_TRACEPOINT_SUBSCRIBER_DESCRIPTION=Cancel a su
 J9NLS_JVMTI_COM_IBM_JVM_DEREGISTER_TRACEPOINT_SUBSCRIBER_DESCRIPTION.explanation=Internationalized description of a JVMTI extension
 J9NLS_JVMTI_COM_IBM_JVM_DEREGISTER_TRACEPOINT_SUBSCRIBER_DESCRIPTION.system_action=None
 J9NLS_JVMTI_COM_IBM_JVM_DEREGISTER_TRACEPOINT_SUBSCRIBER_DESCRIPTION.user_response=None
+# END NON-TRANSLATABLE
+
+J9NLS_JVMTI_COM_IBM_VIRTUAL_THREAD_MOUNT=Report the start of a virtual thread mount.
+# START NON-TRANSLATABLE
+J9NLS_JVMTI_COM_IBM_VIRTUAL_THREAD_MOUNT.explanation=Internationalized description of a JVMTI extension
+J9NLS_JVMTI_COM_IBM_VIRTUAL_THREAD_MOUNT.system_action=None
+J9NLS_JVMTI_COM_IBM_VIRTUAL_THREAD_MOUNT.user_response=None
+
+# END NON-TRANSLATABLE
+
+J9NLS_JVMTI_COM_IBM_VIRTUAL_THREAD_UNMOUNT=Report the end of a virtual thread unmount.
+# START NON-TRANSLATABLE
+J9NLS_JVMTI_COM_IBM_VIRTUAL_THREAD_UNMOUNT.explanation=Internationalized description of a JVMTI extension
+J9NLS_JVMTI_COM_IBM_VIRTUAL_THREAD_UNMOUNT.system_action=None
+J9NLS_JVMTI_COM_IBM_VIRTUAL_THREAD_UNMOUNT.user_response=None
+
 # END NON-TRANSLATABLE

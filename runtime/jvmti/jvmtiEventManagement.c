@@ -100,7 +100,7 @@ jvmtiSetEventNotificationMode(jvmtiEnv* env,
 		/* Ensure the required capabilities are enabled for the event if the event is being enabled */
 
 		if (mode == JVMTI_ENABLE) {
-			switch(event_type) {
+			switch((int)event_type) {
 				case JVMTI_EVENT_FIELD_MODIFICATION:
 					ENSURE_CAPABILITY(env, can_generate_field_modification_events);
 					break;
@@ -159,6 +159,8 @@ jvmtiSetEventNotificationMode(jvmtiEnv* env,
 #if JAVA_SPEC_VERSION >= 19
 				case JVMTI_EVENT_VIRTUAL_THREAD_START:
 				case JVMTI_EVENT_VIRTUAL_THREAD_END:
+				case J9JVMTI_EVENT_COM_IBM_VIRTUAL_THREAD_MOUNT:
+				case J9JVMTI_EVENT_COM_IBM_VIRTUAL_THREAD_UNMOUNT:
 					ENSURE_CAPABILITY(env, can_support_virtual_threads);
 					break;
 #endif /* JAVA_SPEC_VERSION >= 19 */

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2022 IBM Corp. and others
+ * Copyright (c) 1991, 2023 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -148,6 +148,8 @@ static UDATA methodExists(J9Class * methodClass, U_8 * nameData, UDATA nameLengt
 static void jvmtiHookVirtualThreadStarted (J9HookInterface** hook, UDATA eventNum, void* eventData, void* userData);
 static void jvmtiHookVirtualThreadEnd (J9HookInterface** hook, UDATA eventNum, void* eventData, void* userData);
 static void jvmtiHookVirtualThreadDestroy (J9HookInterface **hook, UDATA eventNum, void *eventData, void *userData);
+static void jvmtiHookVirtualThreadMount (J9HookInterface** hook, UDATA eventNum, void* eventData, void* userData);
+static void jvmtiHookVirtualThreadUnmount (J9HookInterface** hook, UDATA eventNum, void* eventData, void* userData);
 #endif /* JAVA_SPEC_VERSION >= 19 */
 
 static void
@@ -421,6 +423,70 @@ jvmtiHookVirtualThreadDestroy(J9HookInterface **hook, UDATA eventNum, void *even
 
 	TRACE_JVMTI_EVENT_RETURN(jvmtiHookVirtualThreadDestroy);
 }
+
+static void
+jvmtiHookVirtualThreadMount(J9HookInterface **hook, UDATA eventNum, void *eventData, void *userData)
+{
+	J9VMVirtualThreadMountEvent *data = eventData;
+	J9JVMTIEnv *j9env = userData;
+	J9VMThread *currentThread = data->currentThread;
+	//jvmtiEventThreadStart callback = j9env->callbacks.VirtualThreadStart;
+	jvmtiExtensionEvent callback = *J9JVMTI_EXTENSION_CALLBACK(j9env, J9JVMTI_EVENT_COM_IBM_VIRTUAL_THREAD_MOUNT);
+
+	Trc_JVMTI_jvmtiHookVirtualThreadMount_Entry();
+
+	ENSURE_EVENT_PHASE_LIVE(jvmtiHookVirtualThreadMount, j9env);
+
+	/* Call the event callback */
+
+	if (NULL != callback) {
+		jthread threadRef = NULL;
+		UDATA hadVMAccess = 0;
+		UDATA javaOffloadOldState = 0;
+		if (prepareForEvent(
+			j9env, currentThread, currentThread, J9JVMTI_EVENT_COM_IBM_VIRTUAL_THREAD_MOUNT,
+			&threadRef, &hadVMAccess, FALSE, 0, &javaOffloadOldState)
+		) {
+			callback((jvmtiEnv *)j9env, (JNIEnv *)currentThread, threadRef);
+			finishedEvent(currentThread, J9JVMTI_EVENT_COM_IBM_VIRTUAL_THREAD_MOUNT, hadVMAccess, javaOffloadOldState);
+		}
+	}
+
+	TRACE_JVMTI_EVENT_RETURN(jvmtiHookVirtualThreadMount);
+}
+
+static void
+jvmtiHookVirtualThreadUnmount(J9HookInterface **hook, UDATA eventNum, void *eventData, void *userData)
+{
+	J9VMVirtualThreadUnmountEvent *data = eventData;
+	J9JVMTIEnv *j9env = userData;
+	//jvmtiEventThreadEnd callback = j9env->callbacks.VirtualThreadEnd;
+	jvmtiExtensionEvent callback = *J9JVMTI_EXTENSION_CALLBACK(j9env, J9JVMTI_EVENT_COM_IBM_VIRTUAL_THREAD_UNMOUNT);
+	J9VMThread *currentThread = data->currentThread;
+
+	Trc_JVMTI_jvmtiHookVirtualThreadUnmount_Entry();
+
+	ENSURE_EVENT_PHASE_LIVE(jvmtiHookVirtualThreadUnmount, j9env);
+
+	/* Call the event callback */
+
+	if (NULL != callback) {
+		jthread threadRef = NULL;
+		UDATA hadVMAccess = 0;
+		UDATA javaOffloadOldState = 0;
+
+		if (prepareForEvent(
+			j9env, currentThread, currentThread, J9JVMTI_EVENT_COM_IBM_VIRTUAL_THREAD_UNMOUNT,
+			&threadRef, &hadVMAccess, FALSE, 0, &javaOffloadOldState)
+		) {
+			callback((jvmtiEnv *)j9env, (JNIEnv *)currentThread, threadRef);
+			finishedEvent(data->currentThread, J9JVMTI_EVENT_COM_IBM_VIRTUAL_THREAD_UNMOUNT, hadVMAccess, javaOffloadOldState);
+		}
+	}
+
+	TRACE_JVMTI_EVENT_RETURN(jvmtiHookVirtualThreadUnmount);
+}
+
 #endif /* JAVA_SPEC_VERSION >= 19 */
 
 static IDATA
@@ -618,6 +684,13 @@ processEvent(J9JVMTIEnv* j9env, jint event, J9HookRedirectorFunction redirectorF
 			} else {
 				return 0;
 			}
+
+		case J9JVMTI_EVENT_COM_IBM_VIRTUAL_THREAD_MOUNT:
+			return redirectorFunction(vmHook, J9HOOK_VIRTUAL_THREAD_MOUNT, jvmtiHookVirtualThreadMount, OMR_GET_CALLSITE(), j9env);
+
+		case J9JVMTI_EVENT_COM_IBM_VIRTUAL_THREAD_UNMOUNT:
+			return redirectorFunction(vmHook, J9HOOK_VIRTUAL_THREAD_UNMOUNT, jvmtiHookVirtualThreadUnmount, OMR_GET_CALLSITE(), j9env);
+
 	}
 
 	return 0;

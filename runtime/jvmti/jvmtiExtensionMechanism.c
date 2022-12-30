@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2022 IBM Corp. and others
+ * Copyright (c) 1991, 2023 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -344,6 +344,17 @@ static const jvmtiParamInfo jvmtiRegisterTracePointSubscriber_params[] = {
 /* (jvmtiEnv *env, void *subscriptionID) */
 static const jvmtiParamInfo jvmtiDeregisterTracepointSubscriber_params[] = {
 	{ "subscriptionID", JVMTI_KIND_IN_PTR, JVMTI_TYPE_CVOID, JNI_FALSE }
+};
+
+/* (jvmtiEnv *jvmti_env, jthread thread) */
+static const jvmtiParamInfo jvmtiVirtualThreadMount_params[] = {
+	{ "jni_env", JVMTI_KIND_IN_PTR, JVMTI_TYPE_JNIENV, JNI_FALSE },
+	{ "thread", JVMTI_KIND_IN, JVMTI_TYPE_JTHREAD, JNI_FALSE }
+};
+
+static const jvmtiParamInfo jvmtiVirtualThreadUnmount_params[] = {
+	{ "jni_env", JVMTI_KIND_IN_PTR, JVMTI_TYPE_JNIENV, JNI_FALSE },
+	{ "thread", JVMTI_KIND_IN, JVMTI_TYPE_JTHREAD, JNI_FALSE }
 };
 
 /*
@@ -776,6 +787,18 @@ static const J9JVMTIExtensionEventInfo J9JVMTIExtensionEventInfoTable[] = {
 		COM_IBM_GARBAGE_COLLECTION_CYCLE_FINISH,
 		J9NLS_JVMTI_COM_IBM_GARBAGE_COLLECTION_CYCLE_FINISH_DESCRIPTION,
 		EMPTY_SIZE_AND_TABLE,
+	},
+	{
+		J9JVMTI_EVENT_COM_IBM_VIRTUAL_THREAD_MOUNT,
+		COM_IBM_VIRTUAL_THREAD_MOUNT,
+		J9NLS_JVMTI_COM_IBM_VIRTUAL_THREAD_MOUNT,
+		SIZE_AND_TABLE(jvmtiVirtualThreadMount_params),
+	},
+	{
+		J9JVMTI_EVENT_COM_IBM_VIRTUAL_THREAD_UNMOUNT,
+		COM_IBM_VIRTUAL_THREAD_UNMOUNT,
+		J9NLS_JVMTI_COM_IBM_VIRTUAL_THREAD_UNMOUNT,
+		SIZE_AND_TABLE(jvmtiVirtualThreadUnmount_params),
 	},
 };
 
