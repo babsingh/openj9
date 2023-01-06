@@ -616,7 +616,6 @@ J9NLS_JVMTI_COM_IBM_VIRTUAL_THREAD_MOUNT=Report the start of a virtual thread mo
 J9NLS_JVMTI_COM_IBM_VIRTUAL_THREAD_MOUNT.explanation=Internationalized description of a JVMTI extension
 J9NLS_JVMTI_COM_IBM_VIRTUAL_THREAD_MOUNT.system_action=None
 J9NLS_JVMTI_COM_IBM_VIRTUAL_THREAD_MOUNT.user_response=None
-
 # END NON-TRANSLATABLE
 
 J9NLS_JVMTI_COM_IBM_VIRTUAL_THREAD_UNMOUNT=Report the end of a virtual thread unmount.
@@ -624,5 +623,19 @@ J9NLS_JVMTI_COM_IBM_VIRTUAL_THREAD_UNMOUNT=Report the end of a virtual thread un
 J9NLS_JVMTI_COM_IBM_VIRTUAL_THREAD_UNMOUNT.explanation=Internationalized description of a JVMTI extension
 J9NLS_JVMTI_COM_IBM_VIRTUAL_THREAD_UNMOUNT.system_action=None
 J9NLS_JVMTI_COM_IBM_VIRTUAL_THREAD_UNMOUNT.user_response=None
-
 # END NON-TRANSLATABLE
+
+J9NLS_JVMTI_COM_IBM_GET_VIRTUAL_THREAD=Gets the virtual thread corresponding to a carrier thread
+# START NON-TRANSLATABLE
+J9NLS_JVMTI_COM_IBM_GET_VIRTUAL_THREAD.explanation=Internationalized description of a JVMTI extension
+J9NLS_JVMTI_COM_IBM_GET_VIRTUAL_THREAD.system_action=None
+J9NLS_JVMTI_COM_IBM_GET_VIRTUAL_THREAD.user_response=None
+# END NON-TRANSLATABLE
+
+J9NLS_JVMTI_COM_IBM_GET_CARRIER_THREAD=Gets the carrier thread corresponding to a virtual thread
+# START NON-TRANSLATABLE
+J9NLS_JVMTI_COM_IBM_GET_CARRIER_THREAD.explanation=Internationalized description of a JVMTI extension
+J9NLS_JVMTI_COM_IBM_GET_CARRIER_THREAD.system_action=None
+J9NLS_JVMTI_COM_IBM_GET_CARRIER_THREAD.user_response=None
+# END NON-TRANSLATABLE
+

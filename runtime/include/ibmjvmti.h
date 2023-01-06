@@ -103,6 +103,9 @@
 #define COM_IBM_VIRTUAL_THREAD_MOUNT "com.ibm.VirtualThreadMount"
 #define COM_IBM_VIRTUAL_THREAD_UNMOUNT "com.ibm.VirtualThreadUnmount"
 
+#define COM_IBM_GET_VIRTUAL_THREAD "com.ibm.GetVirtualThread"
+#define COM_IBM_GET_CARRIER_THREAD "com.ibm.GetCarrierThread"
+
 #define COM_IBM_SHARED_CACHE_MODLEVEL_JAVA5 1
 #define COM_IBM_SHARED_CACHE_MODLEVEL_JAVA6 2
 #define COM_IBM_SHARED_CACHE_MODLEVEL_JAVA7 3
