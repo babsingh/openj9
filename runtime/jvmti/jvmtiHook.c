@@ -455,6 +455,8 @@ jvmtiHookVirtualThreadMount(J9HookInterface **hook, UDATA eventNum, void *eventD
 			j9env, currentThread, currentThread, J9JVMTI_EVENT_COM_SUN_HOTSPOT_EVENTS_VIRTUAL_THREAD_MOUNT,
 			&threadRef, &hadVMAccess, TRUE, 0, &javaOffloadOldState)
 		) {
+			J9JavaVM *vm = currentThread->javaVM;
+			vm->internalVMFunctions->internalExitVMToJNI(currentThread);
 			callback((jvmtiEnv *)j9env, (JNIEnv *)currentThread, threadRef);
 			finishedEvent(currentThread, J9JVMTI_EVENT_COM_SUN_HOTSPOT_EVENTS_VIRTUAL_THREAD_MOUNT, hadVMAccess, javaOffloadOldState);
 		}
@@ -495,6 +497,8 @@ jvmtiHookVirtualThreadUnmount(J9HookInterface **hook, UDATA eventNum, void *even
 			j9env, currentThread, currentThread, J9JVMTI_EVENT_COM_SUN_HOTSPOT_EVENTS_VIRTUAL_THREAD_UNMOUNT,
 			&threadRef, &hadVMAccess, TRUE, 0, &javaOffloadOldState)
 		) {
+			J9JavaVM *vm = currentThread->javaVM;
+			vm->internalVMFunctions->internalExitVMToJNI(currentThread);
 			callback((jvmtiEnv *)j9env, (JNIEnv *)currentThread, threadRef);
 			finishedEvent(data->currentThread, J9JVMTI_EVENT_COM_SUN_HOTSPOT_EVENTS_VIRTUAL_THREAD_UNMOUNT, hadVMAccess, javaOffloadOldState);
 		}
