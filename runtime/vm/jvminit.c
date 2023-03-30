@@ -517,12 +517,12 @@ exitJavaVM(J9VMThread * vmThread, IDATA rc)
 			omrthread_monitor_enter(vm->runtimeFlagsMutex);
 		}
 
-		if(vm->runtimeFlags & J9_RUNTIME_EXIT_STARTED) {
+		if(OMR_ARE_ANY_BITS_SET(vm->runtimeFlags, J9_RUNTIME_EXIT_STARTED)) {
 			if (vm->runtimeFlagsMutex != NULL) {
 				omrthread_monitor_exit(vm->runtimeFlagsMutex);
 			}
 
-			if (vmThread->publicFlags & J9_PUBLIC_FLAGS_VM_ACCESS) {
+			if (OMR_ARE_ANY_BITS_SET(vmThread->publicFlags, J9_PUBLIC_FLAGS_VM_ACCESS)) {
 				internalReleaseVMAccess(vmThread);
 			}
 
@@ -533,10 +533,20 @@ exitJavaVM(J9VMThread * vmThread, IDATA rc)
 		}
 
 		vm->runtimeFlags |= J9_RUNTIME_EXIT_STARTED;
+		/* Wait until the JVM has initialized before exiting the JVM. */
+		printf("exitJavaVM: before init wait\n");
+		while (OMR_ARE_NO_BITS_SET(vm->runtimeFlags, J9_RUNTIME_INITIALIZED)) {
+			if (vm->runtimeFlagsMutex != NULL) {
+				omrthread_monitor_wait(vm->runtimeFlagsMutex);
+			} else {
+				omrthread_yield();
+			}
+		}
 		if(vm->runtimeFlagsMutex != NULL) {
 			omrthread_monitor_exit(vm->runtimeFlagsMutex);
 		}
 
+		printf("exitJavaVM: after init wait\n");
 #ifdef J9VM_OPT_SIDECAR
 		if (vm->sidecarExitHook)
 			(*(vm->sidecarExitHook))(vm);
@@ -7839,7 +7849,7 @@ predefinedHandlerWrapper(struct J9PortLibrary *portLibrary, U_32 gpType, void *g
 	J9JavaVMAttachArgs attachArgs = {0};
 	J9VMThread *vmThread = NULL;
 	IDATA result = JNI_ERR;
-	BOOLEAN shutdownStarted = FALSE;
+	BOOLEAN invokeHandler = TRUE;
 	I_32 signal = 0;
 	PORT_ACCESS_FROM_JAVAVM(vm);
 
@@ -7849,14 +7859,17 @@ predefinedHandlerWrapper(struct J9PortLibrary *portLibrary, U_32 gpType, void *g
 		return 1;
 	}
 
-	/* Don't invoke handler if JVM exit has started. */
+	/* Don't invoke handler if JVM has not initialized or exit has started. */
 	omrthread_monitor_enter(vm->runtimeFlagsMutex);
 	if (J9_ARE_ANY_BITS_SET(vm->runtimeFlags, J9_RUNTIME_EXIT_STARTED)) {
-		shutdownStarted = TRUE;
+	//if (J9_ARE_NO_BITS_SET(vm->runtimeFlags, J9_RUNTIME_INITIALIZED)
+	//|| J9_ARE_ANY_BITS_SET(vm->runtimeFlags, J9_RUNTIME_EXIT_STARTED)
+	//) {
+		invokeHandler = FALSE;
 	}
 	omrthread_monitor_exit(vm->runtimeFlagsMutex);
 
-	if (shutdownStarted) {
+	if (!invokeHandler) {
 		return 1;
 	}
 

@@ -160,7 +160,10 @@ jint JNICALL J9_CreateJavaVM(JavaVM ** p_vm, void ** p_env, J9CreateJavaVMParams
 	env = vm->mainThread;
 
 	/* Success */
+	omrthread_monitor_enter(vm->runtimeFlagsMutex);
 	vm->runtimeFlags |= J9_RUNTIME_INITIALIZED;
+	omrthread_monitor_notify_all(vm->runtimeFlagsMutex);
+	omrthread_monitor_exit(vm->runtimeFlagsMutex);
 	*p_env = (void*) env;
 
 	/* Link the VM into the list */
@@ -337,7 +340,7 @@ protectedDestroyJavaVM(J9PortLibrary* portLibrary, void * userData)
 	if (vm->runtimeFlagsMutex != NULL) {
 		omrthread_monitor_enter(vm->runtimeFlagsMutex);
 	}
-	if (vm->runtimeFlags & J9_RUNTIME_EXIT_STARTED) {
+	if (OMR_ARE_ANY_BITS_SET(vm->runtimeFlags, J9_RUNTIME_EXIT_STARTED)) {
 		if (vm->runtimeFlagsMutex != NULL) {
 			omrthread_monitor_exit(vm->runtimeFlagsMutex);
 		}
@@ -346,10 +349,20 @@ protectedDestroyJavaVM(J9PortLibrary* portLibrary, void * userData)
 		 */
 		return JNI_ERR;
 	}
+	/* Wait until the JVM has initialized before exiting the JVM. */
+	printf("DestroyJavaVM: before init wait\n");
+	while (OMR_ARE_NO_BITS_SET(vm->runtimeFlags, J9_RUNTIME_INITIALIZED)) {
+		if (vm->runtimeFlagsMutex != NULL) {
+			omrthread_monitor_wait(vm->runtimeFlagsMutex);
+		} else {
+			omrthread_yield();
+		}
+	}
 	if (vm->runtimeFlagsMutex != NULL) {
 		omrthread_monitor_exit(vm->runtimeFlagsMutex);
 	}
 
+	printf("DestroyJavaVM: after init wait\n");
 	/* run exit hooks */
 	sidecarShutdown(vmThread);
 
@@ -747,6 +760,8 @@ protectedInternalAttachCurrentThread(J9PortLibrary* portLibrary, void * userData
 #endif
 	}
 
+	printf("sleep 5s\n");
+	sleep(5);
 	/* Success */
 
 	env->gpProtected = FALSE;
