@@ -17,7 +17,7 @@
  * [1] https://www.gnu.org/software/classpath/license.html
  * [2] https://openjdk.org/legal/assembly-exception.html
  *
- * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0-only WITH Classpath-exception-2.0 OR GPL-2.0-only WITH OpenJDK-assembly-exception-1.0
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-exception-2.0 OR LicenseRef-GPL-2.0 WITH Assembly-exception
  *******************************************************************************/
 
 #include <string.h>
@@ -27,7 +27,7 @@
 #ifdef J9ZTPF
 #include <tpf/cujvm.h> /* for z/TPF OS VM exit hook: cjvm_jvm_shutdown_hook() */
 #endif
-
+#include <stdlib.h> /* for getenv */
 #include "j9user.h"
 #include "j9.h"
 #include "jni.h"
@@ -159,8 +159,18 @@ jint JNICALL J9_CreateJavaVM(JavaVM ** p_vm, void ** p_env, J9CreateJavaVMParams
 	/* This has been set during initializeJavaVM */
 	env = vm->mainThread;
 
+	if (NULL != getenv("J9_ENABLE_SIGNAL_DEBUG")) {
+		/* Instrumentation: Signal handler will trigger shutdown code, which will set J9_RUNTIME_INITIALIZED. */
+		printf("[JVM init] Waiting in JVM initialization ... send SHUTDOWN (SIGTERM/SIGINT/SIGHUP) signal.\n");
+		while ((vm->runtimeFlags & J9_RUNTIME_INITIALIZED) != J9_RUNTIME_INITIALIZED) {
+			printf("[JVM init] Sleeping for 500 milliseconds\n");
+			omrthread_sleep(500);
+		}
+	}
+
 	/* Success */
 	vm->runtimeFlags |= J9_RUNTIME_INITIALIZED;
+
 	*p_env = (void*) env;
 
 	/* Link the VM into the list */
@@ -346,6 +356,17 @@ protectedDestroyJavaVM(J9PortLibrary* portLibrary, void * userData)
 		 */
 		return JNI_ERR;
 	}
+
+	if (NULL != getenv("J9_ENABLE_SIGNAL_DEBUG")) {
+		printf("[Shutdown] Invoking JVM shutdown ...\n");
+		if ((vm->runtimeFlags & J9_RUNTIME_INITIALIZED) != J9_RUNTIME_INITIALIZED) {
+			printf("[Shutdown] FAILED: JVM shutdown invoked before the JVM initialized.\n");
+			vm->runtimeFlags |= J9_RUNTIME_INITIALIZED;
+		} else {
+			printf("[Shutdown] PASSED: JVM was initialized before JVM shutdown invoked\n");
+		}
+	}
+
 	if (vm->runtimeFlagsMutex != NULL) {
 		omrthread_monitor_exit(vm->runtimeFlagsMutex);
 	}
