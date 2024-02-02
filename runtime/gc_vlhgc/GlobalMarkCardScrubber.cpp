@@ -288,6 +288,8 @@ MM_GlobalMarkCardScrubber::scrubClassLoaderObject(MM_EnvironmentVLHGC *env, J9Ob
 			while (doScrub && (NULL != modulePtr)) {
 				J9Module * const module = *modulePtr;
 				Assert_MM_true(NULL != module->moduleObject);
+				printf("GMCS mark module before - module: %p, moduleObject: %p, moduleName: %p, version: %p\n", module, module->moduleObject, module->moduleName, module->version);
+
 				doScrub = mayScrubReference(env, classLoaderObject, module->moduleObject);
 				if (doScrub) {
 					doScrub = mayScrubReference(env, classLoaderObject, module->moduleName);
@@ -295,6 +297,9 @@ MM_GlobalMarkCardScrubber::scrubClassLoaderObject(MM_EnvironmentVLHGC *env, J9Ob
 				if (doScrub) {
 					doScrub = mayScrubReference(env, classLoaderObject, module->version);
 				}
+
+				printf("GMCS mark module after - module: %p, moduleObject: %p, moduleName: %p, version: %p\n", module, module->moduleObject, module->moduleName, module->version);
+
 				modulePtr = (J9Module**)hashTableNextDo(&walkState);
 			}
 

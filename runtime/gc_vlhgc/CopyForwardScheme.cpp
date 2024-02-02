@@ -2680,6 +2680,8 @@ MM_CopyForwardScheme::scanClassLoaderObjectSlots(MM_EnvironmentVLHGC *env, MM_Al
 				J9Module **modulePtr = (J9Module **)hashTableStartDo(classLoader->moduleHashTable, &walkState);
 				while (success && (NULL != modulePtr)) {
 					J9Module * const module = *modulePtr;
+					printf("CFS1 mark module before - module: %p, moduleObject: %p, moduleName: %p, version: %p\n", module, module->moduleObject, module->moduleName, module->version);
+
 					success = copyAndForward(env, reservingContext, classLoaderObject, (J9Object **)&(module->moduleObject));
 					if (success) {
 						if (NULL != module->moduleName) {
@@ -2691,6 +2693,8 @@ MM_CopyForwardScheme::scanClassLoaderObjectSlots(MM_EnvironmentVLHGC *env, MM_Al
 							success = copyAndForward(env, reservingContext, classLoaderObject, (J9Object **)&(module->version));
 						}
 					}
+					printf("CFS1 mark module after - module: %p, moduleObject: %p, moduleName: %p, version: %p\n", module, module->moduleObject, module->moduleName, module->version);
+
 					modulePtr = (J9Module**)hashTableNextDo(&walkState);
 				}
 
@@ -4426,6 +4430,8 @@ MM_CopyForwardScheme::scanRoots(MM_EnvironmentVLHGC* env)
 									J9Module **modulePtr = (J9Module **)hashTableStartDo(classLoader->moduleHashTable, &walkState);
 									while (success && (NULL != modulePtr)) {
 										J9Module * const module = *modulePtr;
+										printf("CFS2 mark module before - module: %p, moduleObject: %p, moduleName: %p, version: %p\n", module, module->moduleObject, module->moduleName, module->version);
+
 										success = copyAndForward(env, getContextForHeapAddress(module->moduleObject), (J9Object **)&(module->moduleObject));
 										if (success) {
 											if (NULL != module->moduleName) {
@@ -4437,6 +4443,9 @@ MM_CopyForwardScheme::scanRoots(MM_EnvironmentVLHGC* env)
 												success = copyAndForward(env, getContextForHeapAddress(module->version), (J9Object **)&(module->version));
 											}
 										}
+
+										printf("CFS2 mark module after - module: %p, moduleObject: %p, moduleName: %p, version: %p\n", module, module->moduleObject, module->moduleName, module->version);
+
 										modulePtr = (J9Module**)hashTableNextDo(&walkState);
 									}
 

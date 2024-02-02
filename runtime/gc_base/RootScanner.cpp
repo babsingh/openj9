@@ -24,7 +24,7 @@
 #include <stdio.h>
 #include <limits.h> // or <climits> for CHAR_BIT
 #include <string.h> // memcpy
-
+#include "omrthread.h"
 #include "j9cfg.h"
 #include "j9.h"
 #if defined(J9VM_OPT_JVMTI)
@@ -88,9 +88,11 @@ MM_RootScanner::scanModularityObjects(J9ClassLoader * classLoader)
 	if (NULL != classLoader->moduleHashTable) {
 		J9HashTableState moduleWalkState;
 		J9JavaVM *javaVM = static_cast<J9JavaVM*>(_omrVM->_language_vm);
+		omrthread_monitor_enter(javaVM->classLoaderModuleAndLocationMutex);
 		J9Module **modulePtr = (J9Module**)hashTableStartDo(classLoader->moduleHashTable, &moduleWalkState);
 		while (NULL != modulePtr) {
 			J9Module * const module = *modulePtr;
+			printf("RS mark module before - module: %p, moduleObject: %p, moduleName: %p, version: %p, classloader: %p\n", module, module->moduleObject, module->moduleName, module->version, classLoader);
 
 			doSlot(&module->moduleObject);
 			if (NULL != module->moduleName) {
@@ -99,9 +101,10 @@ MM_RootScanner::scanModularityObjects(J9ClassLoader * classLoader)
 			if (NULL != module->version) {
 				doSlot(&module->version);
 			}
+			printf("RS mark module after - module: %p, moduleObject: %p, moduleName: %p, version: %p, classloader: %p\n", module, module->moduleObject, module->moduleName, module->version, classLoader);
 			modulePtr = (J9Module**)hashTableNextDo(&moduleWalkState);
 		}
-
+		omrthread_monitor_exit(javaVM->classLoaderModuleAndLocationMutex);
 		if (classLoader == javaVM->systemClassLoader) {
 			doSlot(&javaVM->unamedModuleForSystemLoader->moduleObject);
 		}

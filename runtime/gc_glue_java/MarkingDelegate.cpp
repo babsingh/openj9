@@ -397,6 +397,7 @@ MM_MarkingDelegate::completeMarking(MM_EnvironmentBase *env)
 									J9Module **modulePtr = (J9Module**)hashTableStartDo(classLoader->moduleHashTable, &moduleWalkState);
 									while (NULL != modulePtr) {
 										J9Module * const module = *modulePtr;
+										printf("MKD mark module before - module: %p, moduleObject: %p, moduleName: %p, version: %p\n", module, module->moduleObject, module->moduleName, module->version);
 
 										_markingScheme->markObjectNoCheck(env, (omrobjectptr_t )module->moduleObject);
 										if (NULL != module->moduleName) {
@@ -405,6 +406,8 @@ MM_MarkingDelegate::completeMarking(MM_EnvironmentBase *env)
 										if (NULL != module->version) {
 											_markingScheme->markObjectNoCheck(env, (omrobjectptr_t )module->version);
 										}
+										printf("MKD mark module after - module: %p, moduleObject: %p, moduleName: %p, version: %p\n", module, module->moduleObject, module->moduleName, module->version);
+
 										modulePtr = (J9Module**)hashTableNextDo(&moduleWalkState);
 									}
 

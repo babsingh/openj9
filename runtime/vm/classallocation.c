@@ -421,6 +421,8 @@ freeClassLoader(J9ClassLoader *classLoader, J9JavaVM *javaVM, J9VMThread *vmThre
 		J9HashTableState moduleWalkState;
 
 		J9Module** modulePtr = (J9Module**)hashTableStartDo(classLoader->moduleHashTable, &moduleWalkState);
+
+		printf("freeJ9Module - classloader: %p\n", classLoader);
 		while (NULL != modulePtr) {
 			J9Module *moduleDel = *modulePtr;
 			modulePtr = (J9Module**)hashTableNextDo(&moduleWalkState);

@@ -826,6 +826,7 @@ JVM_DefineModule(JNIEnv * env, jobject module, jboolean isOpen, jstring version,
 				if (NULL != j9mod) {
 					BOOLEAN success = FALSE;
 					UDATA rc = addModuleDefinition(currentThread, j9mod, packages, (U_32) numPackages, version);
+					fprintf(stderr, "modObj: %p, j9Mod: %p, classloader: %p, moduleName: %p, nameUTF: %s, rc: %zu\n", modObj, j9mod, classLoader, moduleName, nameUTF, rc);
 					j9mod->isOpen = isOpen;
 					success = (ERRCODE_SUCCESS == rc);
 					if (success) {

@@ -1036,10 +1036,14 @@ MM_MetronomeDelegate::doClassTracing(MM_EnvironmentRealtime *env)
 						J9Module **modulePtr = (J9Module **)hashTableStartDo(classLoader->moduleHashTable, &walkState);
 						while (NULL != modulePtr) {
 							J9Module * const module = *modulePtr;
+							printf("MTD mark module before - module: %p, moduleObject: %p, moduleName: %p, version: %p\n", module, module->moduleObject, module->moduleName, module->version);
 
 							didWork |= _markingScheme->markObject(env, module->moduleObject);
 							didWork |= _markingScheme->markObject(env, module->moduleName);
 							didWork |= _markingScheme->markObject(env, module->version);
+
+							printf("MTD mark module after - module: %p, moduleObject: %p, moduleName: %p, version: %p\n", module, module->moduleObject, module->moduleName, module->version);
+
 							modulePtr = (J9Module**)hashTableNextDo(&walkState);
 						}
 

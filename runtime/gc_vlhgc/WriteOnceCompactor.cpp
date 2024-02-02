@@ -1330,6 +1330,8 @@ MM_WriteOnceCompactor::fixupClassLoaderObject(MM_EnvironmentVLHGC* env, J9Object
 			while (NULL != modulePtr) {
 				J9Module * const module = *modulePtr;
 
+				printf("WOC mark module before - module: %p, moduleObject: %p, moduleName: %p, version: %p\n", module, module->moduleObject, module->moduleName, module->version);
+
 				slotPtr = &module->moduleObject;
 
 				originalObject = *slotPtr;
@@ -1354,6 +1356,8 @@ MM_WriteOnceCompactor::fixupClassLoaderObject(MM_EnvironmentVLHGC* env, J9Object
 					*slotPtr = forwardedObject;
 					_interRegionRememberedSet->rememberReferenceForCompact(env, classLoaderObject, forwardedObject);
 				}
+
+				printf("WOC mark module after - module: %p, moduleObject: %p, moduleName: %p, version: %p\n", module, module->moduleObject, module->moduleName, module->version);
 
 				modulePtr = (J9Module**)hashTableNextDo(&walkState);
 			}

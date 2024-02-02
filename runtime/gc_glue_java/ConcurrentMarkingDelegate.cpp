@@ -424,6 +424,7 @@ MM_ConcurrentMarkingDelegate::concurrentClassMark(MM_EnvironmentBase *env, bool 
 					J9Module **modulePtr = (J9Module**)hashTableStartDo(classLoader->moduleHashTable, &moduleWalkState);
 					while (NULL != modulePtr) {
 						J9Module * const module = *modulePtr;
+						printf("CMD mark module before - module: %p, moduleObject: %p, moduleName: %p, version: %p, classloader: %p\n", module, module->moduleObject, module->moduleName, module->version, classLoader);
 
 						_markingScheme->markObject(env, (j9object_t)module->moduleObject);
 						if (NULL != module->moduleName) {
@@ -432,6 +433,8 @@ MM_ConcurrentMarkingDelegate::concurrentClassMark(MM_EnvironmentBase *env, bool 
 						if (NULL != module->version) {
 							_markingScheme->markObject(env, (j9object_t)module->version);
 						}
+						printf("CMD mark module after - module: %p, moduleObject: %p, moduleName: %p, version: %p, classloader: %p\n", module, module->moduleObject, module->moduleName, module->version, classLoader);
+
 						if (env->isExclusiveAccessRequestWaiting()) {	/* interrupt if exclusive access request is waiting */
 							goto quitConcurrentClassMark;
 						}

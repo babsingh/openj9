@@ -891,6 +891,8 @@ MM_GlobalMarkingScheme::scanClassLoaderObject(MM_EnvironmentVLHGC *env, J9Object
 			while (NULL != modulePtr) {
 				J9Module * const module = *modulePtr;
 				Assert_MM_true(NULL != module->moduleObject);
+				printf("GMS mark module before - module: %p, moduleObject: %p, moduleName: %p, version: %p\n", module, module->moduleObject, module->moduleName, module->version);
+
 				markObject(env, module->moduleObject);
 				rememberReferenceIfRequired(env, classLoaderObject, module->moduleObject);
 				if (NULL != module->moduleName) {
@@ -901,6 +903,9 @@ MM_GlobalMarkingScheme::scanClassLoaderObject(MM_EnvironmentVLHGC *env, J9Object
 					markObject(env, module->version);
 					rememberReferenceIfRequired(env, classLoaderObject, module->version);
 				}
+
+				printf("GMS mark module after - module: %p, moduleObject: %p, moduleName: %p, version: %p\n", module, module->moduleObject, module->moduleName, module->version);
+
 				modulePtr = (J9Module**)hashTableNextDo(&walkState);
 			}
 
