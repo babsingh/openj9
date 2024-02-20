@@ -1199,6 +1199,16 @@ resumeThread(J9VMThread *currentThread, jthread thread)
 		} else {
 			J9OBJECT_U32_STORE(currentThread, threadObject, vm->isSuspendedInternalOffset, 0);
 		}
+		if ((NULL != targetThread)
+		&& J9VMJAVALANGTHREAD_DEADINTERRUPT(currentThread, threadObject)
+		) {
+			omrthread_interrupt(targetThread->osThread);
+#ifdef J9VM_OPT_SIDECAR
+			if (NULL != vm->sidecarInterruptFunction) {
+				vm->sidecarInterruptFunction(targetThread);
+			}
+#endif /* J9VM_OPT_SIDECAR */
+		}
 #endif /* JAVA_SPEC_VERSION >= 19 */
 		releaseVMThread(currentThread, targetThread, thread);
 	}
