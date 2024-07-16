@@ -980,3 +980,10 @@ TraceEvent=Trc_VM_criu_allocateVMThread_set_haltflag noEnv Overhead=1 Level=5 Te
 TraceEvent=Trc_VM_criu_toggleSuspendOnJavaThreads_start Test Overhead=1 Level=5 Template="toggleSuspendOnJavaThreads with currentThreadName(%s) suspendResumeFlag(%u)"
 TraceEvent=Trc_VM_criu_toggleSuspendOnJavaThreads_walkStatus Overhead=1 Level=5 Template="toggleSuspendOnJavaThreads (%s) walkThread(%p)"
 TraceEvent=Trc_VM_criu_toggleSuspendOnJavaThreads_walkThread Test Overhead=1 Level=5 Template="toggleSuspendOnJavaThreads with walkThreadName(%s) suspendResumeFlag(%u) walkThread(%p) currentThread(%p)"
+
+TraceEntry=Trc_VM_HandlePopFramesInterrupt_Enter Overhead=1 Level=1 Template="handlePopFramesInterrupt enter"
+TraceEvent=Trc_VM_HandlePopFramesInterrupt_isTopFrameCompiled Overhead=1 Level=1 Template="handlePopFramesInterrupt - top frame: compiled = %d, _sp = 0x%p, _pc = 0x%p, _arg0EA = 0x%p, _literals = 0x%p"
+TraceEvent=Trc_VM_HandlePopFramesInterrupt_isNextFrameCompiled Overhead=1 Level=1 Template="handlePopFramesInterrupt - next frame: compiled = %d, _sp = 0x%p, _pc = 0x%p, _arg0EA = 0x%p, _literals = 0x%p"
+TraceEvent=Trc_VM_HandlePopFramesInterrupt_invokestatic1 Overhead=1 Level=1 Template="handlePopFramesInterrupt - invokestatic1: method = 0x%p, methodRunAddress = 0x%p"
+TraceEvent=Trc_VM_HandlePopFramesInterrupt_invokestatic2 Overhead=1 Level=1 Template="handlePopFramesInterrupt - invokestatic2: DirectMethodHandle = 0x%p, MemberName = 0x%p"
+TraceExit=Trc_VM_HandlePopFramesInterrupt_Exit Overhead=1 Level=1 Template="handlePopFramesInterrupt exit"

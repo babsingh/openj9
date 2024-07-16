@@ -1354,6 +1354,8 @@ obj:
 		VM_BytecodeAction rc = EXECUTE_BYTECODE;
 		J9StackWalkState walkState;
 
+		Trc_VM_HandlePopFramesInterrupt_Enter(_currentThread);
+
 		/* The interrupt will be fully handled here, and the current thread will no longer be throwing */
 		_currentThread->currentException = NULL;
 		clearEventFlag(_currentThread, J9_PUBLIC_FLAGS_POP_FRAMES_INTERRUPT);
@@ -1375,6 +1377,7 @@ obj:
 			_arg0EA = walkState.arg0EA;
 			_literals = walkState.literals;
 		}
+		Trc_VM_HandlePopFramesInterrupt_isTopFrameCompiled(_currentThread, (NULL != walkState.jitInfo), _sp, _pc, _arg0EA, _literals);
 		if (0 == _currentThread->ferReturnType) {
 			/* PopFrame - find the next stack frame (current frame is a bytecode frame) */
 			updateVMStruct(REGISTER_ARGS);
@@ -1394,6 +1397,7 @@ obj:
 				_pc = walkState.pc;
 				_literals = walkState.literals;
 			}
+			Trc_VM_HandlePopFramesInterrupt_isNextFrameCompiled(_currentThread, (NULL != walkState.jitInfo), _sp, _pc, _arg0EA, _literals);
 			switch (*_pc) {
 			case JBinvokeinterface:
 				/* If the re-executed bytecode is invokeinterface, back up to the invokeinterface2 */
@@ -1422,6 +1426,7 @@ obj:
 				J9RAMMethodRef *ramMethodRef = ((J9RAMMethodRef*)ramConstantPool) + index;
 				J9Method *method = ramMethodRef->method;
 				void *methodRunAddress = method->methodRunAddress;
+				Trc_VM_HandlePopFramesInterrupt_invokestatic1(_currentThread, method, methodRunAddress);
 				if (((void *)J9_BCLOOP_SEND_TARGET_METHODHANDLE_LINKTOSTATICSPECIAL == methodRunAddress)
 				|| ((void *)J9_BCLOOP_SEND_TARGET_METHODHANDLE_LINKTOINTERFACE == methodRunAddress)
 				|| ((void *)J9_BCLOOP_SEND_TARGET_METHODHANDLE_LINKTOVIRTUAL == methodRunAddress)
@@ -1432,6 +1437,7 @@ obj:
 						J9OBJECT_CLAZZ(_currentThread, dmhReceiver)));
 					j9object_t memberName = J9VMJAVALANGINVOKEDIRECTMETHODHANDLE_MEMBER(_currentThread, dmhReceiver);
 					*--_sp = (UDATA)memberName;
+					Trc_VM_HandlePopFramesInterrupt_invokestatic2(_currentThread, dmhReceiver, memberName);
 				}
 				break;
 			}
@@ -1482,6 +1488,9 @@ obj:
 				pushForceEarlyReturnValue(REGISTER_ARGS);
 			}
 		}
+
+		Trc_VM_HandlePopFramesInterrupt_Exit(_currentThread);
+
 		return rc;
 	}
 #endif /* DEBUG_VERSION */
