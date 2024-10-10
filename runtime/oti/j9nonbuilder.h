@@ -6185,6 +6185,10 @@ typedef struct J9JavaVM {
 	UDATA closeScopeNotifyCount;
 #endif /* JAVA_SPEC_VERSION >= 22 */
 	UDATA unsafeIndexableHeaderSize;
+#if defined(J9VM_OPT_SNAPSHOTS)
+	VMSnapshotImplPortLibrary* vmSnapshotImplPortLibrary;
+	const char* ramStateFilePath;
+#endif /* J9VM_OPT_SNAPSHOTS */
 } J9JavaVM;
 
 #define J9JFR_SAMPLER_STATE_UNINITIALIZED 0
@@ -6585,6 +6589,17 @@ typedef struct J9CInterpreterStackFrame {
 #endif /* J9VM_ARCH_X86 */
 } J9CInterpreterStackFrame;
 
+/* Snapshot macros */
+#define IS_RESTORE_RUN(javaVM) J9_ARE_ALL_BITS_SET(javaVM->extendedRuntimeFlags2, J9_EXTENDED_RUNTIME2_RAMSTATE_RESTORE_RUN)
+#define IS_SNAPSHOT_RUN(javaVM) J9_ARE_ALL_BITS_SET(javaVM->extendedRuntimeFlags2, J9_EXTENDED_RUNTIME2_RAMSTATE_SNAPSHOT_RUN)
+/* IS_SNAPSHOTTING_ENABLED is required because the same portlib that allocated a piece of memory must be used to dealloc the memory.
+ * This macro lets us identify cases where the vmsnapshotimpl portlib is used for both snapshot and restore runs. This limitation
+ * may be removed once https://github.ibm.com/runtimes/openj9-stratum/issues/3 is completed
+ */
+#define IS_SNAPSHOTTING_ENABLED(javaVM) J9_ARE_ANY_BITS_SET(javaVM->extendedRuntimeFlags2, J9_EXTENDED_RUNTIME2_RAMSTATE_SNAPSHOT_RUN | J9_EXTENDED_RUNTIME2_RAMSTATE_RESTORE_RUN)
+
+#define PERSISTED_MEMORY_SEGMENT_TYPES MEMORY_TYPE_RAM_CLASS | MEMORY_TYPE_UNDEAD_CLASS | MEMORY_TYPE_ROM_CLASS
+#define IS_SEGMENT_PERSISTED(segment) J9_ARE_ANY_BITS_SET(segment->type, PERSISTED_MEMORY_SEGMENT_TYPES)
 #include "objectreferencesmacros_define.inc"
 
 #endif /* J9NONBUILDER_H */
