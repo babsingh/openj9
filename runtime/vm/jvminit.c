@@ -2166,6 +2166,10 @@ VMInitStages(J9JavaVM *vm, IDATA stage, void* reserved)
 			}
 #endif
 
+#if defined(J9VM_OPT_SNAPSHOTS)
+			FIND_AND_CONSUME_VMARG(STARTSWITH_MATCH, VMOPT_XSNAPSHOT, NULL);
+#endif /* defined(J9VM_OPT_SNAPSHOTS) */
+
 			/* The -Xdfpbd option is used by JIT, consuming it here to allow VM to continue */
 			FIND_AND_CONSUME_VMARG(EXACT_MATCH, VMOPT_XDFPBD, NULL);
 

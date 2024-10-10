@@ -1553,6 +1553,9 @@ typedef struct J9SpecialArguments {
 	IDATA *ibmMallocTraceSet;
 	const char *executableJarPath;
 	BOOLEAN captureCommandLine;
+#if defined(J9VM_OPT_SNAPSHOTS)
+	const char *snapshotCache;
+#endif /* J9VM_OPT_SNAPSHOTS */
 } J9SpecialArguments;
 /**
  * Look for special options:
@@ -1603,6 +1606,11 @@ initialArgumentScan(JavaVMInitArgs *args, J9SpecialArguments *specialArgs)
 		} else if (0 == strcmp(args->options[argCursor].optionString, VMOPT_XXNOOPENJ9COMMANDLINEENV)) {
 			specialArgs->captureCommandLine = FALSE;
 		}
+#if defined(J9VM_OPT_SNAPSHOTS)
+		else if (0 == strncmp(args->options[argCursor].optionString, VMOPT_XSNAPSHOT, strlen(VMOPT_XSNAPSHOT))) {
+			specialArgs->snapshotCache = args->options[argCursor].optionString + strlen(VMOPT_XSNAPSHOT);
+		}
+#endif /* J9VM_OPT_SNAPSHOTS */
 	}
 
 	if ((NULL != classPathValue) && (NULL != javaCommandValue) && (strcmp(javaCommandValue, classPathValue) == 0)) {
