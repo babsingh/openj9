@@ -1554,7 +1554,7 @@ typedef struct J9SpecialArguments {
 	const char *executableJarPath;
 	BOOLEAN captureCommandLine;
 #if defined(J9VM_OPT_SNAPSHOTS)
-	const char *snapshotCache;
+	const char *ramCache;
 #endif /* J9VM_OPT_SNAPSHOTS */
 } J9SpecialArguments;
 /**
@@ -1608,7 +1608,7 @@ initialArgumentScan(JavaVMInitArgs *args, J9SpecialArguments *specialArgs)
 		}
 #if defined(J9VM_OPT_SNAPSHOTS)
 		else if (0 == strncmp(args->options[argCursor].optionString, VMOPT_XSNAPSHOT, strlen(VMOPT_XSNAPSHOT))) {
-			specialArgs->snapshotCache = args->options[argCursor].optionString + strlen(VMOPT_XSNAPSHOT);
+			specialArgs->ramCache = args->options[argCursor].optionString + strlen(VMOPT_XSNAPSHOT);
 		}
 #endif /* J9VM_OPT_SNAPSHOTS */
 	}
@@ -2239,6 +2239,14 @@ JNI_CreateJavaVM_impl(JavaVM **pvm, void **penv, void *vm_args, BOOLEAN isJITSer
 	args = (JavaVMInitArgs *)vm_args;
 	launcherArgumentsSize = initialArgumentScan(args, &specialArgs);
 	localVerboseLevel = specialArgs.localVerboseLevel;
+
+#if defined(J9VM_OPT_SNAPSHOTS)
+	if (NULL != specialArgs.ramCache) {
+		createParams.flags |= J9_CREATEJAVAVM_RAM_CACHE;
+		createParams.ramCache = specialArgs.ramCache;
+
+	}
+#endif /* J9VM_OPT_SNAPSHOTS */
 
 	if (VERBOSE_INIT == localVerboseLevel) {
 		createParams.flags |= J9_CREATEJAVAVM_VERBOSE_INIT;

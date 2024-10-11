@@ -22,6 +22,7 @@
 #include "hashtable_api.h"
 #include "util_api.h"
 #include "ut_j9vmutil.h"
+#include "j9protos.h"
 
 UDATA
 getClassPathEntry(J9VMThread * currentThread, J9ClassLoader * classLoader, IDATA cpIndex, J9ClassPathEntry * cpEntry)

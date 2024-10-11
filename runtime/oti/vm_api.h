@@ -62,6 +62,9 @@ typedef struct J9CreateJavaVMParams {
 	J9JavaVM **globalJavaVM;
 	J9PortLibrary *portLibrary;
 	UDATA flags;
+#if defined(J9VM_OPT_SNAPSHOTS)
+	const char *ramCache;
+#endif /* defined(J9VM_OPT_SNAPSHOTS) */
 } J9CreateJavaVMParams;
 
 /* ---------------- FastJNI.cpp ---------------- */

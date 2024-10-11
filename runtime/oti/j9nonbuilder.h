@@ -97,6 +97,7 @@
 #define J9ClassAllowsNonAtomicCreation 0x800000
 #define J9ClassNeedToPruneMemberNames 0x1000000
 #define J9ClassArrayIsNullRestricted 0x2000000
+#define J9ClassIsLoadedFromImage 0x4000000
 
 /* @ddr_namespace: map_to_type=J9FieldFlags */
 
@@ -5204,6 +5205,11 @@ typedef struct J9InternalVMFunctions {
 #if defined(J9VM_OPT_JFR)
 	void (*jfrExecutionSample)(struct J9VMThread *currentThread, struct J9VMThread *sampleThread);
 #endif /* defined(J9VM_OPT_JFR) */
+#if defined(J9VM_OPT_SNAPSHOTS)
+	void ( *initializeImageClassLoaderObject)(struct J9JavaVM *javaVM, struct J9ClassLoader *classLoader, j9object_t classLoaderObject);
+	struct J9Class* ( *initializeImageClassObject)(struct J9VMThread *vmThread, struct J9ClassLoader *classLoader, struct J9Class *clazz);
+	BOOLEAN ( *loadWarmClass)(struct J9VMThread* vmThread, struct J9ClassLoader* classLoader, struct J9Class *clazz);
+#endif /* defined(J9VM_OPT_SNAPSHOTS) */
 } J9InternalVMFunctions;
 
 /* Jazz 99339: define a new structure to replace JavaVM so as to pass J9NativeLibrary to JVMTIEnv  */

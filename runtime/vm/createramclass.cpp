@@ -2359,6 +2359,13 @@ nativeOOM:
 		}
 #endif /* defined(J9VM_OPT_VALHALLA_FLATTENABLE_VALUE_TYPES) */
 
+#if defined(J9VM_OPT_SNAPSHOTS)
+		if (IS_RESTORE_RUN(javaVM)) {
+			/* needed to make sure class hooks are only run once */
+			classFlags |= J9ClassIsLoadedFromImage;
+		}
+#endif /* J9VM_OPT_SNAPSHOTS */
+
 		state->ramClass->classFlags = classFlags;
 
 		/* Ensure all previous writes have completed before making the new class visible. */
