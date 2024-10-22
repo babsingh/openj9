@@ -458,7 +458,7 @@ internalInitializeJavaLangClassLoader(JNIEnv * env)
 	vmFuncs->internalEnterVMFromJNI(vmThread);
 
 #if defined(J9VM_OPT_SNAPSHOTS)
-	/* always use persisted version in restore run */
+	/* Always use the persisted version in the restore run. */
 	if (!IS_RESTORE_RUN(vm))
 #endif /* defined(J9VM_OPT_SNAPSHOTS) */
 	{
@@ -476,7 +476,7 @@ internalInitializeJavaLangClassLoader(JNIEnv * env)
 		} else
 #endif /* defined(J9VM_OPT_SNAPSHOTS) */
 		{
-			vm->applicationClassLoader = (void*)(UDATA)(vmFuncs->internalAllocateClassLoader(vm, J9_JNI_UNWRAP_REFERENCE(appClassLoader)));
+			vm->applicationClassLoader = (void *)(UDATA)(vmFuncs->internalAllocateClassLoader(vm, J9_JNI_UNWRAP_REFERENCE(appClassLoader)));
 		}
 
 		if (NULL != vmThread->currentException) {
@@ -512,7 +512,7 @@ internalInitializeJavaLangClassLoader(JNIEnv * env)
 			} else
 #endif /* defined(J9VM_OPT_SNAPSHOTS) */
 			{
-				vm->extensionClassLoader = (void*)(UDATA)(vmFuncs->internalAllocateClassLoader(vm, classLoaderObject));
+				vm->extensionClassLoader = (void *)(UDATA)(vmFuncs->internalAllocateClassLoader(vm, classLoaderObject));
 			}
 
 

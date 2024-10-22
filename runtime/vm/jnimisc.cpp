@@ -119,7 +119,7 @@ getCurrentClassLoader(J9VMThread *currentThread)
 			if ((NULL == classLoader)
 #if defined(J9VM_OPT_SNAPSHOTS)
 				/* Need to preserve the order. Classloaders should not be considered active until
-				 * the classloader object is set
+				 * the classloader object is set.
 				 */
 				|| (NULL == classLoader->classLoaderObject)
 #endif /* defined(J9VM_OPT_SNAPSHOTS) */

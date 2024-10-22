@@ -278,15 +278,14 @@ gcCleanupHeapStructures(J9JavaVM * vm)
 	if (!IS_RESTORE_RUN(vm))
 #endif /* defined(J9VM_OPT_SNAPSHOTS) */
 	{
-		if (vm->memorySegments) {
+		if (NULL != vm->memorySegments) {
 			vm->internalVMFunctions->freeMemorySegmentList(vm, vm->memorySegments);
 		}
 
-		if (vm->classMemorySegments) {
+		if (NULL != vm->classMemorySegments) {
 			vm->internalVMFunctions->freeMemorySegmentList(vm, vm->classMemorySegments);
 		}
 	}
-
 
 #if defined(J9VM_GC_FINALIZATION)
 	if (extensions->finalizeListManager) {
@@ -564,13 +563,13 @@ gcInitializeHeapStructures(J9JavaVM *vm)
 
 #if defined(J9VM_OPT_SNAPSHOTS)
 	/* By this point during a restore run, the memory segments are already allocated
-	 * and initilized.
+	 * and initialized.
 	 */
 	if (!IS_RESTORE_RUN(vm))
 #endif /* defined(J9VM_OPT_SNAPSHOTS) */
 	{
-		/* For now, number of segments to default in pool */
-		if ((vm->memorySegments = vm->internalVMFunctions->allocateMemorySegmentList(vm, 10, OMRMEM_CATEGORY_VM)) == NULL) {
+		/* For now, set the number of segments to default (= 10) in the pool. */
+		if (NULL == (vm->memorySegments = vm->internalVMFunctions->allocateMemorySegmentList(vm, 10, OMRMEM_CATEGORY_VM))) {
 			vm->internalVMFunctions->setErrorJ9dll(
 				PORTLIB,
 				loadInfo,
@@ -582,8 +581,8 @@ gcInitializeHeapStructures(J9JavaVM *vm)
 			goto error;
 		}
 
-		/* For now, number of segments to default in pool */
-		if ((vm->classMemorySegments = vm->internalVMFunctions->allocateMemorySegmentListWithFlags(vm, 10, MEMORY_SEGMENT_LIST_FLAG_SORT, J9MEM_CATEGORY_CLASSES)) == NULL) {
+		/* For now, set the number of segments to default (= 10) in the pool. */
+		if (NULL == (vm->classMemorySegments = vm->internalVMFunctions->allocateMemorySegmentListWithFlags(vm, 10, MEMORY_SEGMENT_LIST_FLAG_SORT, J9MEM_CATEGORY_CLASSES))) {
 			vm->internalVMFunctions->setErrorJ9dll(
 				PORTLIB,
 				loadInfo,

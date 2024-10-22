@@ -807,12 +807,13 @@ extern J9_CFUNC int32_t j9port_isCompatible(struct J9PortLibraryVersion *expecte
 #if defined(J9VM_OPT_SNAPSHOTS)
 /*
 * OMR port library wrapper.
-* VMSnapshotImpl instance to access vm snapshot functions
+* VMSnapshotImpl instance to access VM snapshot functions.
 */
 typedef struct VMSnapshotImplPortLibrary {
-	/* portLibrary, must be the first member of J9PortLibrary */
+	/* portLibrary must be the first member of J9PortLibrary. */
 	OMRPortLibrary portLibrary;
-	void *vmSnapshotImpl; /* the port lib redirects to vmSnapshotImpl for allocations */
+	 /* portLibrary redirects to vmSnapshotImpl for allocations. */
+	void *vmSnapshotImpl;
 } VMSnapshotImplPortLibrary;
 
 /* Snapshot macros for snapshot port library access. */

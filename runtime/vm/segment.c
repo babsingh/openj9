@@ -223,8 +223,9 @@ void freeMemorySegmentList(J9JavaVM *javaVM, J9MemorySegmentList *segmentList)
 #endif
 
 #if defined(J9VM_OPT_SNAPSHOTS)
-	/* Guaranteed that classMemorySegments was allocated on JVMImageHeap */
-	/* TODO: In J9MemorySegmentList flags add allocation from image rather than this check. see @ref omr:j9nongenerated.h */
+	/* It is guaranteed that classMemorySegments were allocated on JVMImageHeap.
+	 * TODO: In J9MemorySegmentList flags, add allocation from image rather than this check (see @ref omr:j9nongenerated.h).
+	 */
 	if (IS_SNAPSHOTTING_ENABLED(javaVM) && ((javaVM->classMemorySegments == segmentList) || (javaVM->memorySegments == segmentList))) {
 		vmsnapshot_free_memory(segmentList);
 	} else
@@ -316,7 +317,7 @@ allocateMemoryForSegment(J9JavaVM *javaVM,J9MemorySegment *segment, J9PortVmemPa
 #if defined(J9VM_OPT_SNAPSHOTS)
 	else if (J9_ARE_ALL_BITS_SET(segment->type, MEMORY_TYPE_ROM_CLASS) && IS_SNAPSHOTTING_ENABLED(javaVM)) {
 		tmpAddr = vmsnapshot_allocate_memory(segment->size, memoryCategory);
-		/* TODO: Add Memory type for allocation inside JVMImage (MEMORY_TYPE_IMAGE_ALLOCATED). see @ref omr:j9nongenerated.h */
+		/* TODO: Add Memory type for allocation inside JVMImage (MEMORY_TYPE_IMAGE_ALLOCATED). See @ref omr:j9nongenerated.h. */
 	}
 #endif /* defined(J9VM_OPT_SNAPSHOTS) */
 	else {
@@ -521,13 +522,13 @@ J9MemorySegmentList *allocateMemorySegmentListWithSize(J9JavaVM * javaVM, U_32 n
 #endif /* defined(J9VM_OPT_SNAPSHOTS) */
 
 #if defined(J9VM_OPT_SNAPSHOTS)
-	/* Check if its a cold run and class memory segments list */
+	/* Check if its a cold run, and then allocate the class memory segments list. */
 	if (IS_SNAPSHOT_RUN(javaVM) && ((J9MEM_CATEGORY_CLASSES == memoryCategory) || (OMRMEM_CATEGORY_VM == memoryCategory))) {
 		if (NULL == (segmentList = vmsnapshot_allocate_memory(sizeof(J9MemorySegmentList), memoryCategory))) {
 			return NULL;
 		}
 		segmentList->segmentPool = pool_new(sizeOfElements, numberOfMemorySegments, 0, 0, J9_GET_CALLSITE(), memoryCategory, POOL_FOR_PORT(VMSNAPSHOTIMPL_OMRPORT_FROM_JAVAVM(javaVM)));
-		if (!(segmentList->segmentPool)) {
+		if (NULL == segmentList->segmentPool) {
 			vmsnapshot_free_memory(segmentList);
 			return NULL;
 		}
@@ -538,7 +539,7 @@ J9MemorySegmentList *allocateMemorySegmentListWithSize(J9JavaVM * javaVM, U_32 n
 			return NULL;
 		}
 		segmentList->segmentPool = pool_new(sizeOfElements, numberOfMemorySegments, 0, 0, J9_GET_CALLSITE(), memoryCategory, POOL_FOR_PORT(PORTLIB));
-		if (!(segmentList->segmentPool)) {
+		if (NULL == segmentList->segmentPool) {
 			j9mem_free_memory(segmentList);
 			return NULL;
 		}

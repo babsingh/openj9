@@ -124,8 +124,8 @@ J9HashTable *
 hashModuleNameTableNew(J9JavaVM *javaVM, U_32 initialSize)
 {
 	U_32 flags = J9HASH_TABLE_ALLOW_SIZE_OPTIMIZATION;
-
 	OMRPortLibrary *privatePortLibrary = OMRPORT_FROM_J9PORT(javaVM->portLibrary);
+
 #if defined(J9VM_OPT_SNAPSHOTS)
 	if (IS_SNAPSHOTTING_ENABLED(javaVM)) {
 		privatePortLibrary = VMSNAPSHOTIMPL_OMRPORT_FROM_JAVAVM(javaVM);
@@ -147,8 +147,8 @@ J9HashTable *
 hashPackageTableNew(J9JavaVM *javaVM, U_32 initialSize)
 {
 	U_32 flags = J9HASH_TABLE_ALLOW_SIZE_OPTIMIZATION;
-
 	OMRPortLibrary *privatePortLibrary = OMRPORT_FROM_J9PORT(javaVM->portLibrary);
+
 #if defined(J9VM_OPT_SNAPSHOTS)
 	if (IS_SNAPSHOTTING_ENABLED(javaVM)) {
 		privatePortLibrary = VMSNAPSHOTIMPL_OMRPORT_FROM_JAVAVM(javaVM);

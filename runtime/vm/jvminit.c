@@ -1010,7 +1010,7 @@ freeJavaVM(J9JavaVM * vm)
 
 #if defined(J9VM_OPT_SNAPSHOTS)
 	if (IS_SNAPSHOTTING_ENABLED(vm)) {
-		VMSnapshotImplPortLibrary* imagePortLibrary = vm->vmSnapshotImplPortLibrary;
+		VMSnapshotImplPortLibrary *imagePortLibrary = vm->vmSnapshotImplPortLibrary;
 		shutdownVMSnapshotImpl(imagePortLibrary);
 	} else
 #endif /* defined(J9VM_OPT_SNAPSHOTS) */
@@ -1108,15 +1108,15 @@ initializeJavaVM(void * osMainThread, J9JavaVM ** vmPtr, J9CreateJavaVMParams *c
 #if defined(J9VM_OPT_SNAPSHOTS)
 	if (J9_ARE_ALL_BITS_SET(createParams->flags, J9_CREATEJAVAVM_RAM_CACHE)) {
 		BOOLEAN isSnapshotRun = TRUE;
-		void *vmSnapshotImpl = NULL; /* hack to get around the lack of C++ */
+		/* Workaround for the lack of C++. */
+		void *vmSnapshotImpl = NULL;
 
-		/* TODO need to use portlib functions */
+		/* TODO: Use a port library function. */
 		if (-1 != access(createParams->ramCache, F_OK)) {
 			isSnapshotRun = FALSE;
 		}
 
 		vmSnapshotImpl = initializeVMSnapshotImpl(portLibrary, isSnapshotRun, createParams->ramCache);
-
 		if (NULL == vmSnapshotImpl) {
 			return JNI_ENOMEM;
 		}
@@ -1127,7 +1127,7 @@ initializeJavaVM(void * osMainThread, J9JavaVM ** vmPtr, J9CreateJavaVMParams *c
 			vm = getJ9JavaVMFromVMSnapshotImpl(vmSnapshotImpl);
 		}
 
-		if (vm == NULL) {
+		if (NULL == vm) {
 			return JNI_ENOMEM;
 		}
 
@@ -1143,9 +1143,9 @@ initializeJavaVM(void * osMainThread, J9JavaVM ** vmPtr, J9CreateJavaVMParams *c
 	} else
 #endif /* defined(J9VM_OPT_SNAPSHOTS) */
 	{
-		/* Allocate the VM, including the extra OMR structures */
+		/* Allocate the VM including the extra OMR structures. */
 		vm = allocateJavaVMWithOMR(portLibrary);
-		if (vm == NULL) {
+		if (NULL == vm) {
 			return JNI_ENOMEM;
 		}
 	}
@@ -2926,7 +2926,7 @@ VMInitStages(J9JavaVM *vm, IDATA stage, void* reserved)
 
 			loadInfo = FIND_DLL_TABLE_ENTRY( FUNCTION_VM_INIT );
 #if defined(J9VM_OPT_SNAPSHOTS)
-			/* classLoader is set on restore run */
+			/* classLoader is set on the restore run. */
 			if (!IS_RESTORE_RUN(vm))
 #endif /* defined(J9VM_OPT_SNAPSHOTS) */
 			{

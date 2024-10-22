@@ -53,7 +53,7 @@ typedef struct SavedJ9JavaVMStructures {
 } SavedJ9JavaVMStructures;
 
 /*
- * Right now this is a fixed-sized list, in the future it will be a dynamic list.
+ * Currently, this is a fixed-sized list. In the future, it will be a dynamic list.
  * This represents the types of memory regions and also the order that they appear.
  */
 typedef enum J9MemoryRegionType {
@@ -63,25 +63,24 @@ typedef enum J9MemoryRegionType {
 } J9MemoryRegionType;
 
 /*
- * The memoryRegion header entry. Currently there are
- * a fix number of memory regions, this will change in
- * the future.
+ * The memoryRegion header entry. Currently, there are a fix number of memory regions, this will
+ * change in the future.
  *
  * Fields:
- * fileOffset: The offset in the snapshot file where the region resides. Currently this
- * 			must be page aligned in order to map the memory in. In the future this restriction
- * 			will be removed once shared libraries are generated.
- * startAddr: The address in which the memoryRegion is located.
- * alignedStartAddr: The address in which the memoryRegion is located shifted up to the page boundary.
- * 			This is the address at which the memoryRegion will be mapped in on the restore run.
- * totalSize: Size of the memoryRegion including padding.
- * mappableSize: Size of the memoryRegion excluding padding.
- * permissions: Protection flags for the memoryRegion.
- * type: This is the type of  memory region. Right now there are two, this may increase in the future.
- * 			If we decide to be more thrifty on footprint we can bundle this with permissions.
+ * - fileOffset: The offset in the snapshot file where the region resides. Currently, this
+ *   must be page aligned in order to map the memory in. In the future this restriction
+ * 	 will be removed once shared libraries are generated.
+ * - startAddr: The address in which the memoryRegion is located.
+ * - alignedStartAddr: The address in which the memoryRegion is located shifted up to the page boundary.
+ * 	 This is the address at which the memoryRegion will be mapped in on the restore run.
+ * - totalSize: Size of the memoryRegion including padding.
+ * - mappableSize: Size of the memoryRegion excluding padding.
+ * - permissions: Protection flags for the memoryRegion.
+ * - type: This is the type of  memory region. Right now there are two, this may increase in the future.
+ * 	 If we decide to be more thrifty on footprint, this can be bundled with permissions.
  *
- * TODO Note: Page alignment will be less of a concern when we start writing to shared libraries. In
- * 			future mappableSize and alignedStartAddr may not be needed.
+ * TODO Note: Page alignment will be less of a concern when writing to shared libraries. In the future,
+ * mappableSize and alignedStartAddr may not be needed.
  *
  */
 typedef struct J9MemoryRegion {
@@ -95,10 +94,10 @@ typedef struct J9MemoryRegion {
 } J9MemoryRegion;
 
 /*
- * Struct containing data about image heap and quick access variables
+ * This struct contains data about image heap and quick access variables.
  *
- * Allows us to dump this struct into file and reload more easily.
- * Allocated space for image data is longer than sizeof(JVMImageHeader) and includes heap. see @ref JVMImage::allocateImageMemory
+ * Allows to dump this struct into file and reload more easily.
+ * Allocated space for image data is longer than sizeof(JVMImageHeader) and includes heap (see @ref JVMImage::allocateImageMemory).
  * All quick access variables are J9WSRP to allow reallocation in future.
  *
  * TODO: Allow heap reallocation.

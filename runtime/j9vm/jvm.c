@@ -2247,7 +2247,6 @@ JNI_CreateJavaVM_impl(JavaVM **pvm, void **penv, void *vm_args, BOOLEAN isJITSer
 	if (NULL != specialArgs.ramCache) {
 		createParams.flags |= J9_CREATEJAVAVM_RAM_CACHE;
 		createParams.ramCache = specialArgs.ramCache;
-
 	}
 #endif /* defined(J9VM_OPT_SNAPSHOTS) */
 

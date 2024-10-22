@@ -5207,7 +5207,7 @@ typedef struct J9InternalVMFunctions {
 #endif /* defined(J9VM_OPT_JFR) */
 #if defined(J9VM_OPT_SNAPSHOTS)
 	void (*initializeImageClassLoaderObject)(struct J9JavaVM *javaVM, struct J9ClassLoader *classLoader, j9object_t classLoaderObject);
-	struct J9Class *( *initializeImageClassObject)(struct J9VMThread *vmThread, struct J9ClassLoader *classLoader, struct J9Class *clazz);
+	struct J9Class* (*initializeImageClassObject)(struct J9VMThread *vmThread, struct J9ClassLoader *classLoader, struct J9Class *clazz);
 	BOOLEAN (*loadWarmClass)(struct J9VMThread *vmThread, struct J9ClassLoader *classLoader, struct J9Class *clazz);
 #endif /* defined(J9VM_OPT_SNAPSHOTS) */
 } J9InternalVMFunctions;
@@ -6600,7 +6600,7 @@ typedef struct J9CInterpreterStackFrame {
 #define IS_RESTORE_RUN(javaVM) J9_ARE_ALL_BITS_SET(javaVM->extendedRuntimeFlags2, J9_EXTENDED_RUNTIME2_RAMSTATE_RESTORE_RUN)
 #define IS_SNAPSHOT_RUN(javaVM) J9_ARE_ALL_BITS_SET(javaVM->extendedRuntimeFlags2, J9_EXTENDED_RUNTIME2_RAMSTATE_SNAPSHOT_RUN)
 /* IS_SNAPSHOTTING_ENABLED is required because the same port library that allocated a piece of memory must be used to deallocate it.
- * This macro lets us identify cases where the vmsnapshotimpl portlib is used for both snapshot and restore runs. This limitation
+ * This macro lets us identify cases where the VMSnapshotImplPortLibrary is used for both snapshot and restore runs. This limitation
  * may be removed once https://github.ibm.com/runtimes/openj9-stratum/issues/3 is completed.
  */
 #define IS_SNAPSHOTTING_ENABLED(javaVM) J9_ARE_ANY_BITS_SET(javaVM->extendedRuntimeFlags2, J9_EXTENDED_RUNTIME2_RAMSTATE_SNAPSHOT_RUN | J9_EXTENDED_RUNTIME2_RAMSTATE_RESTORE_RUN)
