@@ -93,6 +93,17 @@ mapAllLocals(J9PortLibrary * portLibrary, J9ROMMethod * romMethod, PARALLEL_TYPE
 	PORT_ACCESS_FROM_PORT(portLibrary);
 #endif
 
+	/* Mark arguments that are objects as per the signature before analysis.
+	 * A side effect is zeroing out the result array.
+	 */
+	argBitsFromSignature(
+			J9UTF8_DATA(J9ROMMETHOD_SIGNATURE(romMethod)),
+			resultArrayBase,
+			(remainingLocals + 31) >> 5,
+			(romMethod->modifiers & J9AccStatic) != 0);
+
+	parallelResultArrayBase = (PARALLEL_TYPE *) resultArrayBase;
+
 	/* set up data to walk exceptions */
 	if (J9ROMMETHOD_HAS_EXCEPTION_INFO(romMethod)) {
 		exceptionData = J9_EXCEPTION_DATA_FROM_ROM_METHOD(romMethod);
