@@ -65,8 +65,8 @@
 #define	PARALLEL_INCREMENT		(-1)
 #endif
 
-static void mapAllLocals(J9PortLibrary * portLibrary, J9ROMMethod * romMethod, PARALLEL_TYPE * unknownsByPC, UDATA startPC, U_32 * resultArrayBase);
-static IDATA mapLocalSet(J9PortLibrary * portLibrary, J9ROMMethod * romMethod, PARALLEL_TYPE * unknownsByPC, UDATA startPC, UDATA localIndexBase, PARALLEL_TYPE * knownLocals, PARALLEL_TYPE * knownObjects, BOOLEAN* unknownsWereUpdated);
+static void mapAllLocals(J9PortLibrary * portLibrary, J9ROMMethod * romMethod, PARALLEL_TYPE * unknownsByPC, UDATA startPC, U_32 * resultArrayBase, BOOLEAN *storeToSlot0Found);
+static IDATA mapLocalSet(J9PortLibrary * portLibrary, J9ROMMethod * romMethod, PARALLEL_TYPE * unknownsByPC, UDATA startPC, UDATA localIndexBase, PARALLEL_TYPE * knownLocals, PARALLEL_TYPE * knownObjects, BOOLEAN* unknownsWereUpdated, BOOLEAN *storeToSlot0Found);
 
 
 /**
@@ -78,7 +78,7 @@ static IDATA mapLocalSet(J9PortLibrary * portLibrary, J9ROMMethod * romMethod, P
  * @param resultArrayBase Memory into which the result should be stored.
 */
 static void
-mapAllLocals(J9PortLibrary * portLibrary, J9ROMMethod * romMethod, PARALLEL_TYPE * unknownsByPC, UDATA startPC, U_32 * resultArrayBase) 
+mapAllLocals(J9PortLibrary * portLibrary, J9ROMMethod * romMethod, PARALLEL_TYPE * unknownsByPC, UDATA startPC, U_32 * resultArrayBase, BOOLEAN *storeToSlot0Found)
 {
 
 	UDATA exceptionCount = 0, localIndexBase = 0;
@@ -92,17 +92,6 @@ mapAllLocals(J9PortLibrary * portLibrary, J9ROMMethod * romMethod, PARALLEL_TYPE
 #if defined(DEBUG)
 	PORT_ACCESS_FROM_PORT(portLibrary);
 #endif
-
-	/* Mark arguments that are objects as per the signature before analysis.
-	 * A side effect is zeroing out the result array.
-	 */
-	argBitsFromSignature(
-			J9UTF8_DATA(J9ROMMETHOD_SIGNATURE(romMethod)),
-			resultArrayBase,
-			(remainingLocals + 31) >> 5,
-			(romMethod->modifiers & J9AccStatic) != 0);
-
-	parallelResultArrayBase = (PARALLEL_TYPE *) resultArrayBase;
 
 	/* set up data to walk exceptions */
 	if (J9ROMMETHOD_HAS_EXCEPTION_INFO(romMethod)) {
@@ -128,7 +117,7 @@ mapAllLocals(J9PortLibrary * portLibrary, J9ROMMethod * romMethod, PARALLEL_TYPE
 		}
 
 		knownObjects = 0;
-		mapLocalSet(portLibrary, romMethod, unknownsByPC, startPC, localIndexBase, &knownLocals, &knownObjects, &unknownsChanged);
+		mapLocalSet(portLibrary, romMethod, unknownsByPC, startPC, localIndexBase, &knownLocals, &knownObjects, &unknownsChanged, storeToSlot0Found);
 
 		if ((knownLocals != (PARALLEL_TYPE) -1) && exceptionCount) {
 			/* walk the exceptions */
@@ -176,7 +165,7 @@ mapAllLocals(J9PortLibrary * portLibrary, J9ROMMethod * romMethod, PARALLEL_TYPE
 						BOOLEAN unknownsChangedWalkingHandler;
 						
 						/* walk the exception handler */
-						mapLocalSet(portLibrary, romMethod, unknownsByPC, handler->handlerPC, localIndexBase, &exceptionKnownLocals, &knownObjects, &unknownsChangedWalkingHandler);
+						mapLocalSet(portLibrary, romMethod, unknownsByPC, handler->handlerPC, localIndexBase, &exceptionKnownLocals, &knownObjects, &unknownsChangedWalkingHandler, storeToSlot0Found);
 
 						/* keepLooking if found new stuff, or updated per-PC metadata */
 						keepLooking = keepLooking || (exceptionKnownLocals != localsBeforeWalk);
@@ -219,7 +208,7 @@ mapAllLocals(J9PortLibrary * portLibrary, J9ROMMethod * romMethod, PARALLEL_TYPE
 */
 
 static IDATA
-mapLocalSet(J9PortLibrary * portLibrary, J9ROMMethod * romMethod, PARALLEL_TYPE * unknownsByPC, UDATA startPC, UDATA localIndexBase, PARALLEL_TYPE * knownLocals, PARALLEL_TYPE * knownObjects, BOOLEAN* unknownsWereUpdated) 
+mapLocalSet(J9PortLibrary * portLibrary, J9ROMMethod * romMethod, PARALLEL_TYPE * unknownsByPC, UDATA startPC, UDATA localIndexBase, PARALLEL_TYPE * knownLocals, PARALLEL_TYPE * knownObjects, BOOLEAN* unknownsWereUpdated, BOOLEAN *storeToSlot0Found)
 {
 
 #define PUSH_BRANCH(programCounter)					 \
@@ -298,6 +287,10 @@ mapLocalSet(J9PortLibrary * portLibrary, J9ROMMethod * romMethod, PARALLEL_TYPE 
 							/* get word index */
 							index = PARAM_16(bcIndex, 1);
 						}
+					}
+
+					if (OMR_ARE_ANY_BITS_SET(temp1, WRITE_ACCESS) && (0 == index)) {
+						*storeToSlot0Found = TRUE;
 					}
 
 					/* Trace only those locals in the range of interest */
@@ -455,6 +448,7 @@ j9localmap_LocalBitsForPC(J9PortLibrary * portLib, J9ROMClass * romClass, J9ROMM
 	UDATA localScratch[LOCAL_SCRATCH / sizeof(UDATA)];
 	UDATA *allocScratch = NULL;
 	UDATA *globalScratch = NULL;
+	BOOLEAN storeToSlot0Found = FALSE;
 
 	Trc_Map_j9localmap_LocalBitsForPC_Method(J9_TEMP_COUNT_FROM_ROM_METHOD(romMethod) + J9_ARG_COUNT_FROM_ROM_METHOD(romMethod), pc, 
 												(UDATA) J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(romClass)), J9UTF8_DATA(J9ROMCLASS_CLASSNAME(romClass)),
@@ -487,10 +481,11 @@ j9localmap_LocalBitsForPC(J9PortLibrary * portLib, J9ROMClass * romClass, J9ROMM
 		}
 	}
 
-	mapAllLocals(portLib, romMethod, (PARALLEL_TYPE *) scratch, pc, resultArrayBase);
+	mapAllLocals(portLib, romMethod, (PARALLEL_TYPE *) scratch, pc, resultArrayBase, &storeToSlot0Found);
 
 	/* Ensure that the receiver is marked for all <init>()V methods */
-	if ((J9_ARE_NO_BITS_SET(romMethod->modifiers, J9AccStatic)) && ('<' == J9UTF8_DATA(J9ROMMETHOD_NAME(romMethod))[0])) {
+	if ((J9_ARE_NO_BITS_SET(romMethod->modifiers, J9AccStatic))
+	&& (!storeToSlot0Found || ('<' == J9UTF8_DATA(J9ROMMETHOD_NAME(romMethod))[0]))) {
 		*resultArrayBase |= 1;
 	}
 
