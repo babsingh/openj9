@@ -19,7 +19,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0-only WITH Classpath-exception-2.0 OR GPL-2.0-only WITH OpenJDK-assembly-exception-1.0
  */
-
 package org.openj9.test;
 
 import java.util.ArrayList;
@@ -29,7 +28,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 
 public class WorkLoad {
-
 	private int numberOfThreads;
 	private int sizeOfNumberList;
 	private int repeats;
@@ -42,7 +40,6 @@ public class WorkLoad {
 		this.sizeOfNumberList = sizeOfNumberList;
 		this.repeats = repeats;
 	}
-
 
 	public static void main(String[] args) {
 		int numberOfThreads = 100;
@@ -60,8 +57,8 @@ public class WorkLoad {
 		if (args.length > 2) {
 			repeats = Integer.parseInt(args[2]);
 		}
-		WorkLoad workload = new WorkLoad(numberOfThreads, sizeOfNumberList, repeats);
 
+		WorkLoad workload = new WorkLoad(numberOfThreads, sizeOfNumberList, repeats);
 		workload.runWork();
 	}
 
@@ -70,7 +67,7 @@ public class WorkLoad {
 		Thread threads[] = new Thread[numberOfThreads];
 
 		for (int i = 0; i < numberOfThreads; i++) {
-			threads[i] = new Thread(()->{
+			threads[i] = new Thread(() -> {
 				workload();
 				completionCount.incrementAndGet();
 			});
@@ -85,8 +82,6 @@ public class WorkLoad {
 				e.printStackTrace();
 			}
 		}
-
-
 
 		System.out.println("All runs complete. " + average + " : " + stdDev);
 	}
@@ -106,6 +101,7 @@ public class WorkLoad {
 		if (0 == depth) {
 			return;
 		}
+
 		recursiveFucntion(depth - 1);
 	}
 
@@ -116,11 +112,12 @@ public class WorkLoad {
 			} catch (Exception e) {}
 			return;
 		}
+
 		recursiveFucntionWithCallable(depth - 1, c);
 	}
 
 	private void generateAnonClasses() {
-		Callable<?> c = ()->{
+		Callable<?> c = () -> {
 			recursiveFucntion(30);
 			return 0;
 		};
@@ -131,26 +128,27 @@ public class WorkLoad {
 	}
 
 	private void generateTimedPark() {
-		recursiveFucntionWithCallable(10, ()->{
+		recursiveFucntionWithCallable(10, () -> {
 			LockSupport.parkNanos(100000);
 			return 0;
 		});
 	}
 
 	private void generateTimedSleep() {
-		recursiveFucntionWithCallable(10, ()->{
+		recursiveFucntionWithCallable(10, () -> {
 			Thread.sleep(100);
 			return 0;
 		});
 	}
 
 	private void generateTimedWait() {
-		recursiveFucntionWithCallable(10, ()->{
+		recursiveFucntionWithCallable(10, () -> {
 			Object o = new Object();
 
 			synchronized(o) {
 				o.wait(100);
 			}
+
 			return 0;
 		});
 	}
@@ -162,25 +160,29 @@ public class WorkLoad {
 			numberList.add(Math.random());
 		}
 
-		/* write to public statics so this code isnt optimized away */
+		/* Write to public statics to avoid optimizing this code. */
 		average += average(numberList);
 		stdDev += standardDeviation(numberList);
 	}
 
 	private double average(List<Double> numbers) {
 		double sum = 0.0;
+
 		for (double number : numbers) {
 			sum += number;
 		}
+
 		return sum / numbers.size();
 	}
 
 	private double standardDeviation(List<Double> numbers) {
 		double mean = average(numbers);
 		double sumOfSquares = 0.0;
+
 		for (double number : numbers) {
 			sumOfSquares += Math.pow(number - mean, 2);
 		}
+
 		return Math.sqrt(sumOfSquares / (numbers.size() - 1));
 	}
 
@@ -188,6 +190,7 @@ public class WorkLoad {
 		try {
 			throw throwable.getDeclaredConstructor().newInstance();
 		} catch (Throwable t) {}
+
 		try {
 			throw throwable.getDeclaredConstructor().newInstance("random string: " + Math.random());
 		} catch (Throwable t) {}

@@ -19,48 +19,50 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0-only WITH Classpath-exception-2.0 OR GPL-2.0-only WITH OpenJDK-assembly-exception-1.0
  */
-
 package org.openj9.test;
 
 import com.ibm.oti.vm.VM;
 
 public class VMAPITest {
-
 	public static void main(String[] args) throws Throwable {
 		final WorkLoad workLoad = new WorkLoad(200, 20000, 200);
 
-			if (VM.isJFRRecordingStarted()) {
-				System.out.println("Failed should not be recording.");
-				return;
-			}
+		if (VM.isJFRRecordingStarted()) {
+			System.out.println("Failed should not be recording.");
+			return;
+		}
 
-		Thread app = new Thread(()->{
+		Thread app = new Thread(() -> {
 			workLoad.runWork();
 		});
 		app.start();
 
 		for (int i = 0; i < 15; i++) {
 			Thread.sleep(100);
+
 			if (VM.startJFR() != 0) {
-				System.out.println("Failed start.");
+				System.out.println("Failed to start.");
 				return;
 			}
+
 			if (!VM.isJFRRecordingStarted()) {
-				System.out.println("Failed not recording");
+				System.out.println("Failed to record.");
 				return;
 			}
+
 			if (!VM.setJFRRecordingFileName("sample" + i + ".jfr")) {
-				System.out.println("Failed set name.");
+				System.out.println("Failed to set name.");
 				return;
 			}
+
 			Thread.sleep(1000);
 			VM.jfrDump();
 			VM.stopJFR();
+
 			if (VM.isJFRRecordingStarted()) {
-				System.out.println("Failed still recording");
+				System.out.println("Failed to stop recording.");
 				return;
 			}
 		}
-
 	}
 }
