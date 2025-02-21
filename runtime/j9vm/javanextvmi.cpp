@@ -784,7 +784,9 @@ restart:
 				listHead = next;
 			}
 			if (NULL == unblockedList) {
+				vmFuncs->internalExitVMToJNI(currentThread);
 				omrthread_monitor_wait(vm->blockedVirtualThreadsMutex);
+				vmFuncs->internalEnterVMFromJNI(currentThread);
 				goto restart;
 			} else {
 				omrthread_monitor_exit(vm->blockedVirtualThreadsMutex);

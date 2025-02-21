@@ -113,13 +113,6 @@ createContinuation(J9VMThread *currentThread, j9object_t continuationObject)
 
 #undef VMTHR_INITIAL_STACK_SIZE
 
-#if JAVA_SPEC_VERSION >= 24
-		continuation->nextWaitingContinuation = NULL;
-		if (J9_ARE_ANY_BITS_SET(vm->extendedRuntimeFlags3, J9_EXTENDED_RUNTIME3_YIELD_PINNED_CONTINUATION)) {
-			continuation->monitorEnterRecordPool = pool_new(sizeof(J9MonitorEnterRecord), 0, 0, 0, J9_GET_CALLSITE(), OMRMEM_CATEGORY_VM, POOL_FOR_PORT(PORTLIB));
-		}
-#endif /* JAVA_SPEC_VERSION >= 24 */
-
 #if defined(J9VM_PROF_CONTINUATION_ALLOCATION)
 		I_64 totalTime = (I_64)j9time_hires_delta(start, j9time_hires_clock(), OMRPORT_TIME_DELTA_IN_NANOSECONDS);
 		if (totalTime > 10000) {
@@ -140,6 +133,13 @@ createContinuation(J9VMThread *currentThread, j9object_t continuationObject)
 
 	/* Reset all fields in the new or recycled continuation. */
 	memset(continuation, 0, sizeof(J9VMContinuation));
+
+#if JAVA_SPEC_VERSION >= 24
+		continuation->nextWaitingContinuation = NULL;
+		if (J9_ARE_ANY_BITS_SET(vm->extendedRuntimeFlags3, J9_EXTENDED_RUNTIME3_YIELD_PINNED_CONTINUATION)) {
+			continuation->monitorEnterRecordPool = pool_new(sizeof(J9MonitorEnterRecord), 0, 0, 0, J9_GET_CALLSITE(), OMRMEM_CATEGORY_VM, POOL_FOR_PORT(PORTLIB));
+		}
+#endif /* JAVA_SPEC_VERSION >= 24 */
 
 	continuation->stackObject = stack;
 	continuation->stackOverflowMark2 = J9JAVASTACK_STACKOVERFLOWMARK(stack);
@@ -261,7 +261,6 @@ enterContinuation(J9VMThread *currentThread, j9object_t continuationObject)
 	currentThread->currentContinuation = continuation;
 	/* Reset counters which determine if the current continuation is pinned. */
 	currentThread->continuationPinCount = 0;
-	currentThread->ownedMonitorCount = 0;
 	currentThread->callOutCount = 0;
 
 	if (started) {
@@ -701,6 +700,7 @@ preparePinnedVirtualThreadForMount(J9VMThread *currentThread, j9object_t contObj
 			}
 			updateMonitorInfo(currentThread, objectMonitor);
 			monitorCount++;
+			monitorRecords = monitorRecords->next;
 		}
 		// repeat for jni monitor records
 		monitorRecords = currentThread->jniMonitorEnterRecords;
@@ -717,6 +717,7 @@ preparePinnedVirtualThreadForMount(J9VMThread *currentThread, j9object_t contObj
 			}
 			updateMonitorInfo(currentThread, objectMonitor);
 			monitorCount++;
+			monitorRecords = monitorRecords->next;
 		}
 	}
 	J9VMJDKINTERNALVMCONTINUATION_SET_BLOCKER(currentThread, contObj, NULL);
@@ -764,6 +765,7 @@ preparePinnedVirtualThreadForUnmount(J9VMThread *currentThread, j9object_t syncO
 
 			detachMonitorInfo(currentThread, objectMonitor);
 			monitorCount++;
+			monitorRecords = monitorRecords->next;
 		}
 		// repeat for jni monitor records
 		monitorRecords = currentThread->jniMonitorEnterRecords;
@@ -792,6 +794,7 @@ preparePinnedVirtualThreadForUnmount(J9VMThread *currentThread, j9object_t syncO
 
 			detachMonitorInfo(currentThread, objectMonitor);
 			monitorCount++;
+			monitorRecords = monitorRecords->next;
 		}
 	}
 
@@ -820,7 +823,7 @@ preparePinnedVirtualThreadForUnmount(J9VMThread *currentThread, j9object_t syncO
 	if (isObjectWait) {
 		J9VMContinuation *continuation = currentThread->currentContinuation;
 		omrthread_monitor_t monitor = syncObjectMonitor->monitor;
-		
+
 		/* Record wait monitor state. */
 		continuation->waitingMonitorEnterCount = monitor->count;
 		/* Reset monitor entry count to 1.*/

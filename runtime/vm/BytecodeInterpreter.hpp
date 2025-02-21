@@ -2934,7 +2934,7 @@ done:
 					j9objectmonitor_t *lockEA = NULL;
 					J9ObjectMonitor *objectMonitor = NULL;
 					if (!LN_HAS_LOCKWORD(_currentThread, receiver)) {
-						objectMonitor = monitorTableAt(_currentThread, receiver);
+						objectMonitor = monitorTablePeek(_vm, receiver);
 					} else {
 						lockEA = J9OBJECT_MONITOR_EA(_currentThread, receiver);
 						lock = J9_LOAD_LOCKWORD(_currentThread, lockEA);
@@ -5688,7 +5688,7 @@ ffi_OOM:
 		{
 			restoreInternalNativeStackFrame(REGISTER_ARGS);
 			j9object_t waitObject = *(j9object_t*)(_sp + 3);
-			
+
 			UDATA monitorRC = enterObjectMonitor(REGISTER_ARGS, waitObject);
 			/* Monitor enter can only fail in the nonblocking case, which does not
 			 * release VM access, so the immediate async and failed enter cases are
