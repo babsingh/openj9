@@ -4688,6 +4688,12 @@ acquireVThreadInspector(J9VMThread *currentThread, jobject thread, BOOLEAN spin)
  */
 void
 releaseVThreadInspector(J9VMThread *currentThread, jobject thread);
+
+void
+enterVThreadTransitionCritical(J9VMThread *currentThread, jobject thread);
+
+void
+exitVThreadTransitionCritical(J9VMThread *currentThread, jobject thread);
 #endif /* JAVA_SPEC_VERSION >= 19 */
 
 #if JAVA_SPEC_VERSION >= 24
