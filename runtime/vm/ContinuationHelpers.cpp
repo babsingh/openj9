@@ -723,7 +723,7 @@ exitVThreadTransitionCritical(J9VMThread *currentThread, jobject thread)
 	}
 
 	/* Update to virtualThreadInspectorCount must be after clearing isSuspendedInternal field to retain sync ordering. */
-	// Assert_SC_true(-1 == J9OBJECT_I64_LOAD(currentThread, vthread, vm->virtualThreadInspectorCountOffset));
+	Assert_VM_true(-1 == J9OBJECT_I64_LOAD(currentThread, vthread, vm->virtualThreadInspectorCountOffset));
 	J9OBJECT_I64_STORE(currentThread, vthread, vm->virtualThreadInspectorCountOffset, 0);
 }
 
@@ -750,7 +750,7 @@ preparePinnedVirtualThreadForMount(J9VMThread *currentThread, j9object_t continu
 	UDATA monitorCount = 0;
 	j9object_t syncObject = J9VMJDKINTERNALVMCONTINUATION_BLOCKER(currentThread, continuationObject);
 
-	if (0 < currentThread->ownedMonitorCount) {
+	if (currentThread->ownedMonitorCount > 0) {
 		/* Inflate all owned monitors. */
 		J9MonitorEnterRecord *monitorRecords = currentThread->monitorEnterRecords;
 		while (NULL != monitorRecords) {
@@ -818,7 +818,7 @@ preparePinnedVirtualThreadForUnmount(J9VMThread *currentThread, j9object_t syncO
 	if (NULL != syncObj) {
 		enterVThreadTransitionCritical(currentThread, (jobject)&currentThread->threadObject);
 	}
-	if (0 < currentThread->ownedMonitorCount) {
+	if (currentThread->ownedMonitorCount > 0) {
 		/* Inflate all owned monitors. */
 		J9MonitorEnterRecord *monitorRecords = currentThread->monitorEnterRecords;
 		while (NULL != monitorRecords) {
@@ -916,7 +916,7 @@ preparePinnedVirtualThreadForUnmount(J9VMThread *currentThread, j9object_t syncO
 			/* Record wait monitor state. */
 			continuation->waitingMonitorEnterCount = monitor->count;
 
-			/* Reset monitor entry count to 1.*/
+			/* Reset monitor entry count to 1. */
 			monitor->count = 1;
 			/* Reset monitor state to pre-detach state so omrthread_monitor_exit behave correctly. */
 			monitor->owner = currentThread->osThread;
@@ -983,6 +983,8 @@ restart:
 				case JAVA_LANG_VIRTUALTHREAD_WAIT:
 				case JAVA_LANG_VIRTUALTHREAD_TIMED_WAIT:
 					J9VMJAVALANGVIRTUALTHREAD_SET_STATE(currentThread, listHead->vthread, JAVA_LANG_VIRTUALTHREAD_BLOCKED);
+					/* FALLTHROUGH */
+				default:
 					break;
 				}
 				if (J9VMJAVALANGVIRTUALTHREAD_ONWAITINGLIST(currentThread, listHead->vthread)) {

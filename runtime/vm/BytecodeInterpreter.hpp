@@ -5772,8 +5772,8 @@ ffi_OOM:
 		updateVMStruct(REGISTER_ARGS);
 
 		if (J9_ARE_ANY_BITS_SET(_vm->extendedRuntimeFlags3, J9_EXTENDED_RUNTIME3_YIELD_PINNED_CONTINUATION)
-		&& (0 < _currentThread->ownedMonitorCount)
-		&& (FALSE == isFinished)
+		&& (_currentThread->ownedMonitorCount > 0)
+		&& isFinished
 		) {
 			preparePinnedVirtualThreadForUnmount(_currentThread, NULL, false);
 		}

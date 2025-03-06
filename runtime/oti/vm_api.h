@@ -4689,9 +4689,21 @@ acquireVThreadInspector(J9VMThread *currentThread, jobject thread, BOOLEAN spin)
 void
 releaseVThreadInspector(J9VMThread *currentThread, jobject thread);
 
+/**
+ * @brief Enter VirtualThread's critical section for transitions.
+ *
+ * @param currentThread the current thread
+ * @param thread target VirtualThread that is transitioning
+ */
 void
 enterVThreadTransitionCritical(J9VMThread *currentThread, jobject thread);
 
+/**
+ * @brief Exit VirtualThread's critical section for transitions.
+ *
+ * @param currentThread the current thread
+ * @param thread target VirtualThread that is transitioning
+ */
 void
 exitVThreadTransitionCritical(J9VMThread *currentThread, jobject thread);
 #endif /* JAVA_SPEC_VERSION >= 19 */
@@ -4702,6 +4714,7 @@ exitVThreadTransitionCritical(J9VMThread *currentThread, jobject thread);
  *
  * @param currentThread the current thread
  * @param continuationObject the Continuation object
+ * @param isObjectWait if the call is from Object.wait()
  */
 void
 preparePinnedVirtualThreadForMount(J9VMThread *currentThread, j9object_t continuationObject, BOOLEAN isObjectWait);

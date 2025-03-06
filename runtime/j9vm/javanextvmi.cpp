@@ -266,7 +266,7 @@ JVM_IsPreviewEnabled(void)
 static void
 setContinuationStateToLastUnmount(J9VMThread *currentThread, jobject thread)
 {
-	J9InternalVMFunctions *vmFuncs = currentThread->javaVM->internalVMFunctions;
+	J9InternalVMFunctions const * const vmFuncs = currentThread->javaVM->internalVMFunctions;
 	vmFuncs->enterVThreadTransitionCritical(currentThread, thread);
 
 	/* Re-fetch reference as enterVThreadTransitionCritical may release VMAccess. */
@@ -283,7 +283,7 @@ static void
 virtualThreadMountBegin(JNIEnv *env, jobject thread)
 {
 	J9VMThread *currentThread = (J9VMThread *)env;
-	J9InternalVMFunctions *vmFuncs = currentThread->javaVM->internalVMFunctions;
+	J9InternalVMFunctions const * const vmFuncs = currentThread->javaVM->internalVMFunctions;
 
 	j9object_t threadObj = J9_JNI_UNWRAP_REFERENCE(thread);
 	Assert_SC_true(IS_JAVA_LANG_VIRTUALTHREAD(currentThread, threadObj));
@@ -313,7 +313,7 @@ virtualThreadMountEnd(JNIEnv *env, jobject thread)
 {
 	J9VMThread *currentThread = (J9VMThread *)env;
 	J9JavaVM *vm = currentThread->javaVM;
-	J9InternalVMFunctions *vmFuncs = vm->internalVMFunctions;
+	J9InternalVMFunctions const * const vmFuncs = vm->internalVMFunctions;
 	j9object_t threadObj = J9_JNI_UNWRAP_REFERENCE(thread);
 
 	Assert_SC_true(IS_JAVA_LANG_VIRTUALTHREAD(currentThread, threadObj));
@@ -344,7 +344,7 @@ virtualThreadUnmountBegin(JNIEnv *env, jobject thread)
 {
 	J9VMThread *currentThread = (J9VMThread *)env;
 	J9JavaVM *vm = currentThread->javaVM;
-	J9InternalVMFunctions *vmFuncs = vm->internalVMFunctions;
+	J9InternalVMFunctions const * const vmFuncs = vm->internalVMFunctions;
 
 	j9object_t threadObj = J9_JNI_UNWRAP_REFERENCE(thread);
 
@@ -394,7 +394,7 @@ virtualThreadUnmountEnd(JNIEnv *env, jobject thread)
 {
 	J9VMThread *currentThread = (J9VMThread *)env;
 	J9JavaVM *vm = currentThread->javaVM;
-	J9InternalVMFunctions *vmFuncs = vm->internalVMFunctions;
+	9InternalVMFunctions const * const vmFuncs = vm->internalVMFunctions;
 
 	j9object_t threadObj = J9_JNI_UNWRAP_REFERENCE(thread);
 	j9object_t continuationObj = J9VMJAVALANGVIRTUALTHREAD_CONT(currentThread, threadObj);
@@ -509,7 +509,7 @@ JVM_VirtualThreadMount(JNIEnv *env, jobject vthread, jboolean hide)
 {
 	J9VMThread *currentThread = (J9VMThread *)env;
 	J9JavaVM *vm = currentThread->javaVM;
-	J9InternalVMFunctions *vmFuncs = vm->internalVMFunctions;
+	J9InternalVMFunctions const * const vmFuncs = vm->internalVMFunctions;
 
 	Trc_SC_VirtualThreadMount_Entry(currentThread, vthread, hide);
 
@@ -531,7 +531,7 @@ JVM_VirtualThreadUnmount(JNIEnv *env, jobject vthread, jboolean hide)
 {
 	J9VMThread *currentThread = (J9VMThread *)env;
 	J9JavaVM *vm = currentThread->javaVM;
-	J9InternalVMFunctions *vmFuncs = vm->internalVMFunctions;
+	J9InternalVMFunctions const * const vmFuncs = vm->internalVMFunctions;
 
 	Trc_SC_VirtualThreadUnmount_Entry(currentThread, vthread, hide);
 
@@ -559,7 +559,7 @@ JVM_VirtualThreadStart(JNIEnv *env, jobject vthread)
 {
 	J9VMThread *currentThread = (J9VMThread *)env;
 	J9JavaVM *vm = currentThread->javaVM;
-	J9InternalVMFunctions *vmFuncs = vm->internalVMFunctions;
+	J9InternalVMFunctions const * const vmFuncs = vm->internalVMFunctions;
 
 	Trc_SC_VirtualThreadStart_Entry(currentThread, vthread);
 
@@ -578,7 +578,7 @@ JVM_VirtualThreadEnd(JNIEnv *env, jobject vthread)
 {
 	J9VMThread *currentThread = (J9VMThread *)env;
 	J9JavaVM *vm = currentThread->javaVM;
-	J9InternalVMFunctions *vmFuncs = vm->internalVMFunctions;
+	J9InternalVMFunctions const * const vmFuncs = vm->internalVMFunctions;
 
 	Trc_SC_VirtualThreadEnd_Entry(currentThread, vthread);
 
