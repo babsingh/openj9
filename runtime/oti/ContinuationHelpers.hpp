@@ -323,6 +323,62 @@ public:
 
 		return foundInList;
 	}
+
+	static VMINLINE bool
+	notifyVirtualThread(J9VMThread *vmThread, J9ObjectMonitor *objectMonitor, bool notifyAll) {
+		bool notified = false;
+		J9JavaVM *vm = vmThread->javaVM;
+		J9VMContinuation *head = objectMonitor->waitingContinuations;
+		J9VMContinuation *prev = head;
+
+		omrthread_monitor_enter(vm->blockedVirtualThreadsMutex);
+		while ((NULL != head) && (NULL != head->vthread)) {
+			if (J9VMJAVALANGTHREAD_DEADINTERRUPT(vmThread, head->vthread)) {
+				/* Remove vthreads that have been interrupted. */
+				if (prev == head) {
+					/* This is the first entry. */
+					objectMonitor->waitingContinuations = head->nextWaitingContinuation;
+					head->nextWaitingContinuation = NULL;
+					head = objectMonitor->waitingContinuations;
+					prev = objectMonitor->waitingContinuations;
+				} else {
+					prev->nextWaitingContinuation = head->nextWaitingContinuation;
+					head->nextWaitingContinuation = NULL;
+					head = prev->nextWaitingContinuation;
+				}
+			} else {
+				/* Sets the notified and onWaitingList flag for vthread that have not been interrupted. */
+				J9VMJAVALANGVIRTUALTHREAD_SET_NOTIFIED(vmThread, head->vthread, JNI_TRUE);
+				J9VMJAVALANGVIRTUALTHREAD_SET_ONWAITINGLIST(vmThread, head->vthread, JNI_TRUE);
+				notified = true;
+
+				if (!notifyAll) {
+					/* For Object.notify, exit the loop with prev and head pointer set to notified Continuation. */
+					break;
+				}
+
+				prev = head;
+				head = head->nextWaitingContinuation;
+			}
+		}
+		if (notified) {
+			/* Move notified vthreads to the blockedContinuations list for unblocking. */
+			if (notifyAll) {
+				prev->nextWaitingContinuation = vm->blockedContinuations;
+				objectMonitor->waitingContinuations = NULL;
+				vm->blockedContinuations = prev;
+			} else {
+				objectMonitor->waitingContinuations = head->nextWaitingContinuation;
+				head->nextWaitingContinuation = vm->blockedContinuations;
+				vm->blockedContinuations = head;
+			}
+			omrthread_monitor_notify(vm->blockedVirtualThreadsMutex);
+		}
+
+		omrthread_monitor_exit(vm->blockedVirtualThreadsMutex);
+
+		return notified;
+	}
 #endif /* JAVA_SPEC_VERSION >= 24 */
 };
 
