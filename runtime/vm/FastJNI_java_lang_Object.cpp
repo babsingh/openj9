@@ -124,8 +124,8 @@ Fast_java_lang_Object_notify(J9VMThread *currentThread, j9object_t receiverObjec
 
 				if ((NULL != objectMonitor) && (NULL != objectMonitor->waitingContinuations)) {
 					if (VM_ContinuationHelpers::notifyVirtualThread(currentThread, objectMonitor, false)) {
-						/* if a vthread have been successfully notified, return directly without triggering
-						 * the native notify API.
+						/* If a virtual thread has been successfully notified, return directly without
+						 * triggering the native notify API.
 						 */
 						return;
 					}

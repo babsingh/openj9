@@ -3001,10 +3001,10 @@ done:
 						bool isNotifyAll = (omrthread_monitor_notify_all == notifyFunction);
 						bool notified = VM_ContinuationHelpers::notifyVirtualThread(_currentThread, objectMonitor, isNotifyAll);
 
-						/* if a vthread have been successfully notified, return directly without triggering
+						/* if a virtual thread has been successfully notified, return directly without triggering
 						 * the native notify API.
 						 */
-						if (notified && (!isNotifyAll)) {
+						if (notified && !isNotifyAll) {
 							returnVoidFromINL(REGISTER_ARGS, 1);
 							goto done;
 						}
@@ -5767,7 +5767,7 @@ ffi_OOM:
 				_currentThread->currentContinuation->waitingMonitorEnterCount = 0;
 				_currentThread->ownedMonitorCount -= 1;
 
-				/* Only throw exception if the vthread have not been notified. */
+				/* Only throw an exception if the virtual thread has not been notified. */
 				if (J9VMJAVALANGTHREAD_DEADINTERRUPT(_currentThread, _currentThread->threadObject)
 				&& !J9VMJAVALANGVIRTUALTHREAD_NOTIFIED(_currentThread, _currentThread->threadObject)
 				) {

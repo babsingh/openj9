@@ -324,17 +324,28 @@ public:
 		return foundInList;
 	}
 
+	/**
+	 * Logic to notify virtual threads waiting on an object monitor.
+	 *
+	 * @param[in] vmThread the J9VMThread
+	 * @param[in] objectMonitor the object monitor on which the virtual threads are waiting
+	 * @param[in] notifyAll indicates if all virtual threads should be notified
+	 *
+	 * @return true if any virtual threads are notified, otherwise false
+	 */
 	static VMINLINE bool
-	notifyVirtualThread(J9VMThread *vmThread, J9ObjectMonitor *objectMonitor, bool notifyAll) {
+	notifyVirtualThread(J9VMThread *vmThread, J9ObjectMonitor *objectMonitor, bool notifyAll)
+	{
 		bool notified = false;
 		J9JavaVM *vm = vmThread->javaVM;
 		J9VMContinuation *head = objectMonitor->waitingContinuations;
 		J9VMContinuation *prev = head;
 
 		omrthread_monitor_enter(vm->blockedVirtualThreadsMutex);
+
 		while ((NULL != head) && (NULL != head->vthread)) {
 			if (J9VMJAVALANGTHREAD_DEADINTERRUPT(vmThread, head->vthread)) {
-				/* Remove vthreads that have been interrupted. */
+				/* Remove virtual threads that have been interrupted. */
 				if (prev == head) {
 					/* This is the first entry. */
 					objectMonitor->waitingContinuations = head->nextWaitingContinuation;
@@ -347,13 +358,17 @@ public:
 					head = prev->nextWaitingContinuation;
 				}
 			} else {
-				/* Sets the notified and onWaitingList flag for vthread that have not been interrupted. */
+				/* Set the notified and onWaitingList flag for virtual threads that have not been
+				 * interrupted.
+				 */
 				J9VMJAVALANGVIRTUALTHREAD_SET_NOTIFIED(vmThread, head->vthread, JNI_TRUE);
 				J9VMJAVALANGVIRTUALTHREAD_SET_ONWAITINGLIST(vmThread, head->vthread, JNI_TRUE);
 				notified = true;
 
 				if (!notifyAll) {
-					/* For Object.notify, exit the loop with prev and head pointer set to notified Continuation. */
+					/* For Object.notify, exit the loop with prev and head pointer set to notified
+					 * Continuation.
+					 */
 					break;
 				}
 
@@ -361,8 +376,9 @@ public:
 				head = head->nextWaitingContinuation;
 			}
 		}
+
 		if (notified) {
-			/* Move notified vthreads to the blockedContinuations list for unblocking. */
+			/* Move notified virtual threads to the blockedContinuations list for unblocking. */
 			if (notifyAll) {
 				prev->nextWaitingContinuation = vm->blockedContinuations;
 				objectMonitor->waitingContinuations = NULL;
