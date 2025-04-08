@@ -5474,6 +5474,7 @@ typedef struct J9VMContinuation {
 	struct J9VMContinuation* nextWaitingContinuation;
 	struct J9ObjectMonitor* objectWaitMonitor;
 	struct J9ObjectMonitor* enteredMonitors;
+	I_64 startTicks;
 #endif /* JAVA_SPEC_VERSION >= 24 */
 } J9VMContinuation;
 #endif /* JAVA_SPEC_VERSION >= 19 */
