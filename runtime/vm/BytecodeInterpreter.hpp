@@ -5228,10 +5228,11 @@ done:
 					 * the value of expected wait/park time before a wake up task is scheduled using the value.
 					 */
 					J9VMJAVALANGVIRTUALTHREAD_SET_TIMEOUT(_currentThread, _currentThread->threadObject, millis + (nanos / 1000000));
-					_currentThread->currentContinuation->startTicks = j9time_nano_time();
-					omrthread_monitor_t monitor = _currentThread->currentContinuation->objectWaitMonitor->monitor;
+					J9VMContinuation *currentContinuation = _currentThread->currentContinuation;
+					currentContinuation->startTicks = j9time_nano_time();
+					omrthread_monitor_t monitor = currentContinuation->objectWaitMonitor->monitor;
 					/* Trigger MonitorWait hook. */
-					TRIGGER_J9HOOK_VM_MONITOR_WAIT(_vm->hookInterface, _currentThread, monitor, millis + (nanos / 1000000), 0);
+					TRIGGER_J9HOOK_VM_MONITOR_WAIT(_vm->hookInterface, _currentThread, monitor, millis, nanos);
 					rc = yieldPinnedContinuation(REGISTER_ARGS, newState, J9VM_CONTINUATION_RETURN_FROM_OBJECT_WAIT);
 				} else {
 					rc = THROW_MONITOR_ALLOC_FAIL;
@@ -5768,7 +5769,8 @@ ffi_OOM:
 		j9object_t syncObject = J9VMJDKINTERNALVMCONTINUATION_BLOCKER(_currentThread, continuationObject);
 		J9VMJDKINTERNALVMCONTINUATION_SET_BLOCKER(_currentThread, continuationObject, NULL);
 
-		switch (_currentThread->currentContinuation->returnState) {
+		J9VMContinuation *currentContinuation = _currentThread->currentContinuation;
+		switch (currentContinuation->returnState) {
 		case J9VM_CONTINUATION_RETURN_FROM_YIELD:
 			returnSingleFromINL(REGISTER_ARGS, JNI_TRUE, 1);
 			break;
@@ -5776,22 +5778,25 @@ ffi_OOM:
 			break;
 		case J9VM_CONTINUATION_RETURN_FROM_OBJECT_WAIT: {
 			rc = tryEnterBlockingMonitor(REGISTER_ARGS, syncObject, J9VM_CONTINUATION_RETURN_FROM_OBJECT_WAIT);
-			if ((NULL != _currentThread->currentContinuation) && (EXECUTE_BYTECODE == rc)) {
+			if ((NULL != currentContinuation) && (EXECUTE_BYTECODE == rc)) {
 				syncObject = *(j9object_t *)(_sp + 3);
 				omrthread_monitor_t monitor = getMonitorForWait(_currentThread, syncObject);
-				monitor->count = _currentThread->currentContinuation->waitingMonitorEnterCount;
+				monitor->count = currentContinuation->waitingMonitorEnterCount;
 				_currentThread->ownedMonitorCount += monitor->count - 1;
-				_currentThread->currentContinuation->waitingMonitorEnterCount = 0;
+				currentContinuation->waitingMonitorEnterCount = 0;
 
-				bool interrupted = J9VMJAVALANGTHREAD_DEADINTERRUPT(_currentThread, _currentThread->threadObject);
-				bool notified = J9VMJAVALANGVIRTUALTHREAD_NOTIFIED(_currentThread, _currentThread->threadObject);
+				j9object_t threadObject = _currentThread->threadObject;
+				bool interrupted = J9VMJAVALANGTHREAD_DEADINTERRUPT(_currentThread, threadObject);
+				bool notified = J9VMJAVALANGVIRTUALTHREAD_NOTIFIED(_currentThread, threadObject);
 
 				if (J9_EVENT_IS_HOOKED(_vm->hookInterface, J9HOOK_VM_MONITOR_WAITED)) {
 					IDATA rc = (interrupted ? J9THREAD_INTERRUPTED : (notified ? 0 : J9THREAD_TIMED_OUT));
-					UDATA millis = J9VMJAVALANGVIRTUALTHREAD_TIMEOUT(_currentThread, _currentThread->threadObject);
+					UDATA millis = J9VMJAVALANGVIRTUALTHREAD_TIMEOUT(_currentThread, threadObject);
 
 					/* Dispatch MonitorWaited hook, with stored metadata. */
-					TRIGGER_J9HOOK_VM_MONITOR_WAITED(_vm->hookInterface, _currentThread, monitor, millis, 0, rc, _currentThread->currentContinuation->startTicks, (UDATA) monitor, J9OBJECT_CLAZZ(_currentThread, syncObject));
+					TRIGGER_J9HOOK_VM_MONITOR_WAITED(
+							_vm->hookInterface, _currentThread, monitor, millis, 0, rc,
+							currentContinuation->startTicks, (UDATA) monitor, J9OBJECT_CLAZZ(_currentThread, syncObject));
 				}
 
 				/* Only throw an exception if the virtual thread has not been notified. */
