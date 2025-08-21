@@ -78,6 +78,12 @@ calculateAppropriateSegmentSize(J9JavaVM *javaVM, UDATA requiredSize, UDATA segm
 			}
 			segment = segment->nextSegmentInClassLoader;
 	 	}
+
+		
+    	printf("[ClassMem] calcSize enter req=%zu segType=0x%zx inc=%zu CL=%p segCount=%zu\n",
+    		(size_t)requiredSize, (size_t)segmentType,
+        	(size_t)allocationIncrement, (void*)classLoader,
+        	(size_t)allocatedSegments);
 	 	
 		/* Use alternative allocation strategy */
 		if (GROWTH_START > allocatedSegments) {
@@ -89,7 +95,13 @@ calculateAppropriateSegmentSize(J9JavaVM *javaVM, UDATA requiredSize, UDATA segm
 	}
 
 	/* Ensure segment size at least satisfies the required size */
-	return OMR_MAX(segmentSize, requiredSize);
+	segmentSize = OMR_MAX(segmentSize, requiredSize);
+
+	printf("[ClassMem] calcSize exit req=%zu -> segSize=%zu segType=0x%zx CL=%p\n",
+		(size_t)requiredSize, (size_t)segmentSize,
+		(size_t)segmentType, (void*)classLoader);
+
+	return segmentSize;
 }
 
 /**
@@ -114,12 +126,24 @@ allocateClassMemorySegment(J9JavaVM *javaVM, UDATA requiredSize, UDATA segmentTy
 	}
 
 	appropriateSize = calculateAppropriateSegmentSize(javaVM, requiredSize, segmentType, classLoader, allocationIncrement);
+
+	printf("[ClassMem] allocSeg request req=%zu appr=%zu segType=0x%zx CL=%p\n",
+		(size_t)requiredSize, (size_t)appropriateSize,
+		(size_t)segmentType, (void*)classLoader);
+
 	memorySegment = allocateMemorySegmentInList(javaVM, javaVM->classMemorySegments, appropriateSize, segmentType, J9MEM_CATEGORY_CLASSES);
 	
 	 if (NULL != memorySegment) {
 		memorySegment->classLoader = classLoader;
 		memorySegment->nextSegmentInClassLoader = classLoader->classSegments;
 		classLoader->classSegments = memorySegment;
+
+		printf("[ClassMem] allocSeg ok seg=%p type=0x%zx size=%zu base=%p heapBase=%p heapTop=%p CL=%p\n",
+			(void*)memorySegment, (size_t)memorySegment->type, (size_t)memorySegment->size,
+			memorySegment->baseAddress, memorySegment->heapBase, memorySegment->heapTop, (void*)classLoader);
+	} else {
+		printf("[ClassMem] allocSeg FAIL req=%zu appr=%zu segType=0x%zx CL=%p\n",
+			(size_t)requiredSize, (size_t)appropriateSize, (size_t)segmentType, (void*)classLoader);
 	}
 	
 	if (NULL != segmentMutex) {

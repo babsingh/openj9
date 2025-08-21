@@ -3891,6 +3891,19 @@ addBlockToLargeFreeList(J9ClassLoader *classLoader, J9RAMClassFreeListLargeBlock
 	}
 }
 
+static BOOLEAN
+addrInAnyClassSegment(J9ClassLoader *cl, UDATA addr, UDATA size)
+{
+	for (J9MemorySegment *s = cl->classSegments; s; s = s->nextSegmentInClassLoader) {
+		UDATA base = (UDATA)s->heapBase;
+		UDATA top  = (UDATA)s->heapTop;
+		if ((addr >= base) && ((addr + size) <= top)) {
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
 static void
 addBlockToFreeList(J9ClassLoader *classLoader, UDATA address, UDATA size, J9RAMClassFreeLists *blockFreeLists, UDATA *ramClassUDATABlockFreelist)
 {
@@ -3898,24 +3911,49 @@ addBlockToFreeList(J9ClassLoader *classLoader, UDATA address, UDATA size, J9RAMC
 		/* We support individual class unloading for anonymous classes, so each anonymous class
 		 * has its own segment. We therefore don't use free blocks from these segments.
 		 */
+		printf("[ClassMem] free.skip anon CL=%p addr=%p size=%zu\n", (void*)classLoader, (void*)address, (size_t)size);
 		return;
 	}
+
+	if ((address & (sizeof(UDATA)-1)) != 0) {
+        /* Misaligned block – ignore to avoid corrupting lists */
+        printf("[ClassMem][GUARD] addBlock misaligned addr=%p size=%zu\n",(void*)address,(size_t)size);
+        return;
+    }
+
+	if (!addrInAnyClassSegment(classLoader, address, size)) {
+		printf("[GUARD] addBlock out-of-range addr=%p size=%zu\n",(void*)address,(size_t)size);
+		return;
+	}
+
 	if (sizeof(UDATA) == size) {
-		UDATA *block = (UDATA *)address;
-		*block = (UDATA)ramClassUDATABlockFreelist;
-		ramClassUDATABlockFreelist = block;
-	} else if (sizeof(J9RAMClassFreeListBlock) <= size) {
-		J9RAMClassFreeListBlock *block = (J9RAMClassFreeListBlock *)address;
-		block->size = size;
-		if (RAM_CLASS_SMALL_FRAGMENT_LIMIT > size) {
-			block->nextFreeListBlock = blockFreeLists->ramClassTinyBlockFreeList;
-			blockFreeLists->ramClassTinyBlockFreeList = block;
-		} else if (RAM_CLASS_FRAGMENT_LIMIT > size) {
-			block->nextFreeListBlock = blockFreeLists->ramClassSmallBlockFreeList;
-			blockFreeLists->ramClassSmallBlockFreeList = block;
-		} else {
-			addBlockToLargeFreeList(classLoader, (J9RAMClassFreeListLargeBlock *)block, blockFreeLists);
-		}
+		printf("[ClassMem] free.add bucket=UDATA addr=%p size=%zu\n", (void*)address, (size_t)size);
+		UDATA *cell = (UDATA *)address;
+		*cell = (UDATA)ramClassUDATABlockFreelist;
+		ramClassUDATABlockFreelist = cell;
+		return;
+	}
+
+	if (size < sizeof(J9RAMClassFreeListBlock)) {
+        /* Too small for a free-list node and not a single UDATA cell: ignore */
+        printf("[ClassMem][GUARD] addBlock too small addr=%p size=%zu (ignored)\n",(void*)address,(size_t)size);
+        return;
+    }
+
+	const char *bucket =
+		(RAM_CLASS_SMALL_FRAGMENT_LIMIT > size) ? "tiny" :
+		(RAM_CLASS_FRAGMENT_LIMIT > size) ? "small" : "large";
+	printf("[ClassMem] free.add bucket=%s addr=%p size=%zu\n", bucket, (void*)address, (size_t)size);
+	J9RAMClassFreeListBlock *block = (J9RAMClassFreeListBlock *)address;
+	block->size = size;
+	if (RAM_CLASS_SMALL_FRAGMENT_LIMIT > size) {
+		block->nextFreeListBlock = blockFreeLists->ramClassTinyBlockFreeList;
+		blockFreeLists->ramClassTinyBlockFreeList = block;
+	} else if (RAM_CLASS_FRAGMENT_LIMIT > size) {
+		block->nextFreeListBlock = blockFreeLists->ramClassSmallBlockFreeList;
+		blockFreeLists->ramClassSmallBlockFreeList = block;
+	} else {
+		addBlockToLargeFreeList(classLoader, (J9RAMClassFreeListLargeBlock *)block, blockFreeLists);
 	}
 }
 
@@ -3972,7 +4010,11 @@ allocateRAMClassFragmentFromFreeList(RAMClassAllocationRequest *request, J9RAMCl
 		}
 	}
 
-	Trc_VM_internalAllocateRAMClass_ScanFreeList(freeListBlock);
+	printf("[ClassMem] scanFreeList: list=%s req(idx=%zu frag=%zu align=%zu prefix=%zu)\n",
+           (freeList == &blockFreeLists->ramClassLargeBlockFreeList) ? "large" :
+           (freeList == &blockFreeLists->ramClassSmallBlockFreeList) ? "small" : "tiny",
+           (size_t)request->index, (size_t)fragmentSize, (size_t)alignment, (size_t)prefixSize);
+   Trc_VM_internalAllocateRAMClass_ScanFreeList(freeListBlock);
 
 	while (NULL != freeListBlock) {
 		/* Allocate from the start of the block */
@@ -3987,6 +4029,13 @@ allocateRAMClassFragmentFromFreeList(RAMClassAllocationRequest *request, J9RAMCl
 
 			Trc_VM_internalAllocateRAMClass_AllocatedFromFreeList(request->index, freeListBlock, freeListBlock->size, request->address, request->prefixSize, request->alignedSize, request->alignment);
 
+			printf("[ClassMem] freeList HIT: list=%s blk=%p blkSize=%zu alignShift=%zu take=%zu remain=%zu addr=%p\n",
+                   (islargeBlocksList ? "large" :
+                   (freeList == &blockFreeLists->ramClassSmallBlockFreeList) ? "small" : "tiny"),
+                   (void*)freeListBlock, (size_t)freeListBlock->size,
+                   (size_t)alignmentShift, (size_t)fragmentSize, (size_t)newBlockSize,
+                   (void*)request->address);
+				   
 			if (islargeBlocksList) {
 				removeBlockFromLargeFreeList(classLoader, (J9RAMClassFreeListLargeBlock **)freeListBlockPtr, (J9RAMClassFreeListLargeBlock *)freeListBlock, blockFreeLists);
 			} else {
@@ -4012,7 +4061,11 @@ allocateRAMClassFragmentFromFreeList(RAMClassAllocationRequest *request, J9RAMCl
 		freeListBlock = *freeListBlockPtr;
 	}
 
-	return FALSE;
+    printf("[ClassMem] freeList MISS: list=%s req(idx=%zu frag=%zu align=%zu)\n",
+           (freeList == &blockFreeLists->ramClassLargeBlockFreeList) ? "large" :
+           (freeList == &blockFreeLists->ramClassSmallBlockFreeList) ? "small" : "tiny",
+           (size_t)request->index, (size_t)fragmentSize, (size_t)alignment);
+    return FALSE;
 }
 
 /**
@@ -4021,6 +4074,9 @@ allocateRAMClassFragmentFromFreeList(RAMClassAllocationRequest *request, J9RAMCl
 static void
 allocateFreeListBlock (RAMClassAllocationRequest *request, J9ClassLoader *classLoader, RAMClassAllocationRequest *prev, J9RAMClassFreeLists *blockFreeLists, UDATA *ramClassUDATABlockFreelist)
 {
+    printf("[ClassMem] allocateFreeListBlock: idx=%zu frag=%zu align=%zu prefix=%zu\n",
+           (size_t)request->index, (size_t)request->fragmentSize,
+           (size_t)request->alignment, (size_t)request->prefixSize);
 	if ((sizeof(UDATA) == request->fragmentSize)
 		&& (NULL != ramClassUDATABlockFreelist)
 	) {
@@ -4048,6 +4104,8 @@ allocateFreeListBlock (RAMClassAllocationRequest *request, J9ClassLoader *classL
 			}
 		}
 		if (NULL != request->address) {
+			printf("[ClassMem] UDATA freelist HIT: addr=%p (post-prefix=%p)\n",
+                   (void*)block, (void*)request->address);
 			if (request->prefixSize != 0) {
 				request->address++;
 			}
@@ -4060,25 +4118,31 @@ allocateFreeListBlock (RAMClassAllocationRequest *request, J9ClassLoader *classL
 	if ((RAM_CLASS_SMALL_FRAGMENT_LIMIT > request->fragmentSize)
 		&& (NULL != blockFreeLists->ramClassTinyBlockFreeList)
 	) {
+		printf("[ClassMem] try tiny list...\n");
 		if (allocateRAMClassFragmentFromFreeList(request, &blockFreeLists->ramClassTinyBlockFreeList, classLoader, ramClassUDATABlockFreelist, blockFreeLists)) {
 			prev->next = request->next;
 			return;
 		}
+		printf("[ClassMem] tiny MISS\n");
 	}
 	/* Avoid scanning the small free block list to allocate RAM class headers. The alignment constraint will rarely be satisfied. */
 	if ((RAM_CLASS_FRAGMENT_LIMIT > request->fragmentSize + request->alignment)
 		&& (NULL != blockFreeLists->ramClassSmallBlockFreeList)
 	) {
+		printf("[ClassMem] try small list...\n");
 		if (allocateRAMClassFragmentFromFreeList(request, &blockFreeLists->ramClassSmallBlockFreeList, classLoader, ramClassUDATABlockFreelist, blockFreeLists)) {
 			prev->next = request->next;
 			return;
 		}
+		printf("[ClassMem] small MISS\n");
 	}
 	if (NULL != blockFreeLists->ramClassLargeBlockFreeList) {
+		printf("[ClassMem] try large list...\n");
 		if (allocateRAMClassFragmentFromFreeList(request, &blockFreeLists->ramClassLargeBlockFreeList, classLoader, ramClassUDATABlockFreelist, blockFreeLists)) {
 			prev->next = request->next;
 			return;
 		}
+		printf("[ClassMem] large MISS\n");
 	}
 }
 
@@ -4184,6 +4248,35 @@ static void coalesceFreeBlocks(J9RAMClassFreeListBlock **freeListHead) {
 	}
 }
 
+static int
+validateFreeList(const char *name, J9ClassLoader *cl, J9RAMClassFreeListBlock *head)
+{
+ 	int seen = 0;
+	for (J9RAMClassFreeListBlock *p = head; p; p = p->nextFreeListBlock) {
+		/* Prevent infinite loops on cycles */
+		if (++seen > 10000000) {
+			printf("[GUARD] %s: suspiciously long list (cycle?)\n", name);
+			return -1;
+		}
+		/* Alignment */
+		if (((UDATA)p & (sizeof(UDATA)-1)) != 0) {
+			printf("[GUARD] %s: misaligned node=%p — abort coalesce\n", name, (void*)p);
+			return -1;
+		}
+		/* In-range and header-sized */
+		if (!addrInAnyClassSegment(cl, (UDATA)p, sizeof(J9RAMClassFreeListBlock))) {
+			printf("[GUARD] %s: node out-of-range %p — abort coalesce\n", name, (void*)p);
+			return -1;
+		}
+		if (p->size < sizeof(J9RAMClassFreeListBlock)) {
+			printf("[GUARD] %s: undersized node=%p size=%zu — abort coalesce\n",
+			       name, (void*)p, (size_t)p->size);
+			return -1;
+		}
+	}
+	return 0;
+}
+
 /**
  * Coalesces adjacent free blocks in all free list categories contained in the RAM class free lists.
  *
@@ -4191,13 +4284,18 @@ static void coalesceFreeBlocks(J9RAMClassFreeListBlock **freeListHead) {
  *
  * This function calls coalesceFreeBlocks on each free list (tiny, small, and large).
  */
-static void coalesceAllFreeLists(J9RAMClassFreeLists *freeLists) {
-	if (freeLists == NULL)
-		return;
-
-	coalesceFreeBlocks(&freeLists->ramClassTinyBlockFreeList);
-	coalesceFreeBlocks(&freeLists->ramClassSmallBlockFreeList);
-	coalesceFreeBlocks(&freeLists->ramClassLargeBlockFreeList);
+static void coalesceAllFreeLists(J9RAMClassFreeLists *freeLists, J9ClassLoader *cl) {
+    if (!freeLists) return;
+	/* Validate then coalesce each list */
+	if (validateFreeList("tiny",  cl, freeLists->ramClassTinyBlockFreeList)  == 0) {
+		coalesceFreeBlocks(&freeLists->ramClassTinyBlockFreeList);
+	}
+	if (validateFreeList("small", cl, freeLists->ramClassSmallBlockFreeList) == 0) {
+		coalesceFreeBlocks(&freeLists->ramClassSmallBlockFreeList);
+	}
+	if (validateFreeList("large", cl, freeLists->ramClassLargeBlockFreeList) == 0) {
+		coalesceFreeBlocks(&freeLists->ramClassLargeBlockFreeList);
+	}
 }
 
 /**
@@ -4237,6 +4335,15 @@ allocateRemainingFragments(RAMClassAllocationRequest *requests, UDATA allocation
 			}
 		}
 
+		printf("[ClassMem] allocRemain: kind=%d needFragments=%zu estSize=%zu (incl max-align)\n",
+               (int)segmentKind, (size_t)fragmentsLeftToAllocate, (size_t)newSegmentSize);
+		
+		/* Nothing to do for this kind — avoid coalesce/allocating 0-byte segments */
+		if (0 == fragmentsLeftToAllocate) {
+			/* NOTE: do NOT coalesce here; we didn’t produce any new holes */
+			return TRUE;
+		}
+
 		/* Add sizeof(UDATA) to hold the "lastAllocatedClass" pointer */
 		if (SUB4G == segmentKind)
 		{
@@ -4247,12 +4354,49 @@ allocateRemainingFragments(RAMClassAllocationRequest *requests, UDATA allocation
 		UDATA classAllocationIncrement = javaVM->ramClassAllocationIncrement;
 		if (isLoadedByAnonClassLoader) {
 			classAllocationIncrement = 0;
+		} else {
+			UDATA plannedSize = newSegmentSize; /* no dry-run yet */
+
+			if (segmentKind == SUB4G) {
+				UDATA unit = sizeof(J9Class);
+				UDATA mask = J9_REQUIRED_CLASS_ALIGNMENT - 1;
+				unit = (unit + mask) & ~mask;          /* header aligned */
+				const UDATA headersPerSeg = 16;         /* start small: 8 or 16 */
+				UDATA incr = unit * headersPerSeg;
+				classAllocationIncrement = (plannedSize > incr) ? plannedSize : incr;
+
+			} else if (segmentKind == INFREQUENTLY_ACCESSED) {
+				const UDATA coldCap = 8 * 1024;       /* 8–16 KB typical */
+				classAllocationIncrement = (plannedSize < coldCap) ? plannedSize : coldCap;
+
+			} else { /* FREQUENTLY_ACCESSED */
+				if (plannedSize < classAllocationIncrement / 2) {
+					classAllocationIncrement = plannedSize;
+				}
+			}
 		}
 
-		coalesceAllFreeLists(j9RamClassFreeList);
+		coalesceAllFreeLists(j9RamClassFreeList, classLoader);
+		UDATA reqMask = J9_REQUIRED_CLASS_ALIGNMENT - 1;
+		UDATA newSizeAligned = (newSegmentSize + reqMask) & ~reqMask;
+
+		/* Refuse to allocate zero-sized segments (defensive double-check) */
+		if (0 == newSizeAligned) {
+			printf("[ClassMem][GUARD] refusing to allocate zero-size segment (kind=%d)\n", (int)segmentKind);
+			return TRUE;
+		}
+
 		UDATA memoryType = MEMORY_TYPE_RAM_CLASS;
 		Trc_VM_internalAllocateRAMClass_AllocateClassMemorySegment(fragmentsLeftToAllocate, newSegmentSize, classAllocationIncrement);
-		newSegment = allocateClassMemorySegment(javaVM, newSegmentSize, memoryType, classLoader, classAllocationIncrement);
+		printf("[ClassMem] allocRemain: coalesced free lists; requesting new segment size=%zu inc=%zu kind=%d\n",
+               (size_t)newSizeAligned, (size_t)classAllocationIncrement, (int)segmentKind);
+		newSegment = allocateClassMemorySegment(javaVM, newSizeAligned, memoryType, classLoader, classAllocationIncrement);
+		printf("[ClassMem] allocRemain: segment %s seg=%p size=%zu heapBase=%p heapTop=%p\n",
+               newSegment ? "OK" : "FAIL",
+               (void*)newSegment,
+               newSegment ? (size_t)newSegment->size : (size_t)0,
+               newSegment ? newSegment->heapBase : NULL,
+               newSegment ? newSegment->heapTop : NULL);
 
 		if (NULL == newSegment) {
 			/* Free allocated fragments */
@@ -4278,6 +4422,7 @@ allocateRemainingFragments(RAMClassAllocationRequest *requests, UDATA allocation
 
 		/* Allocate the remaining fragments in the new segment, adding holes to the free list */
 		allocAddress = ((UDATA) newSegment->heapBase) + sizeof(UDATA);
+		printf("[ClassMem] allocRemain: carve start at=%p\n", (void*)allocAddress);
 		for (request = requests; NULL != request; request = request->next) {
 			if (((request->address == NULL) && (request->segmentKind == segmentKind))
 				|| (!isNotLoadedByAnonClassLoader)
@@ -4288,7 +4433,11 @@ allocateRemainingFragments(RAMClassAllocationRequest *requests, UDATA allocation
 				UDATA alignmentShift = (0 == alignmentMod) ? 0 : (request->alignment - alignmentMod);
 
 				request->address = (UDATA *) (addressForAlignedArea + alignmentShift);
-
+				printf("[ClassMem] carve: idx=%zu kind=%d prefix=%zu align=%zu shift=%zu frag=%zu -> addr=%p\n",
+                       (size_t)request->index, (int)segmentKind,
+                       (size_t)request->prefixSize, (size_t)request->alignment,
+                       (size_t)alignmentShift, (size_t)request->fragmentSize,
+                       (void*)request->address);
 				Trc_VM_internalAllocateRAMClass_AllocatedFromNewSegment(request->index, newSegment, request->address, request->prefixSize, request->alignedSize, request->alignment);
 
 				/* Add a new block with the remaining space at the start of this block, if any, to an appropriate free list */
@@ -4303,6 +4452,9 @@ allocateRemainingFragments(RAMClassAllocationRequest *requests, UDATA allocation
 		}
 		/* Add a new block with the remaining space at the end of this segment, if any, to an appropriate free list */
 		if (allocAddress != (UDATA) newSegment->heapTop) {
+			printf("[ClassMem] tail-waste: start=%p end=%p waste=%zu\n",
+                   (void*)allocAddress, (void*)newSegment->heapTop,
+                   (size_t)(((UDATA)newSegment->heapTop) - allocAddress));
 			addBlockToFreeList(classLoader, allocAddress, ((UDATA) newSegment->heapTop) - allocAddress, j9RamClassFreeList, ramClassUDATABlockFreelist);
 		}
 	}
@@ -4366,6 +4518,9 @@ internalAllocateRAMClass(J9JavaVM *javaVM, J9ClassLoader *classLoader, RAMClassA
 		}
 	}
 
+	printf("[ClassMem] internalAllocateRAMClass: enter CL=%p requests=%zu anon?=%d\n",
+           (void*)classLoader, (size_t)fragmentsLeftToAllocate,
+           classLoader == javaVM->anonClassLoader);
 	Trc_VM_internalAllocateRAMClass_Entry(classLoader, fragmentsLeftToAllocate);
 
 	/* make sure we always make a new segment if its an anonClass */
@@ -4374,10 +4529,16 @@ internalAllocateRAMClass(J9JavaVM *javaVM, J9ClassLoader *classLoader, RAMClassA
 		prev = &dummyHead;
 		for (request = requests; NULL != request; request = request->next) {
 			if(SUB4G == request->segmentKind) {
+				printf("[ClassMem] tryFreeList: kind=SUB4G idx=%zu frag=%zu align=%zu\n",
+                       (size_t)request->index, (size_t)request->fragmentSize, (size_t)request->alignment);
 				allocateFreeListBlock (request, classLoader, prev, &classLoader->sub4gBlock, classLoader->sub4gBlock.ramClassUDATABlockFreeList);
 			} else if (FREQUENTLY_ACCESSED == request->segmentKind) {
+				printf("[ClassMem] tryFreeList: kind=FA idx=%zu frag=%zu align=%zu\n",
+                       (size_t)request->index, (size_t)request->fragmentSize, (size_t)request->alignment);
 				allocateFreeListBlock (request, classLoader, prev, &classLoader->frequentlyAccessedBlock, classLoader->frequentlyAccessedBlock.ramClassUDATABlockFreeList);
 			} else if (INFREQUENTLY_ACCESSED == request->segmentKind) {
+				printf("[ClassMem] tryFreeList: kind=IA idx=%zu frag=%zu align=%zu\n",
+                       (size_t)request->index, (size_t)request->fragmentSize, (size_t)request->alignment);
 				allocateFreeListBlock (request, classLoader, prev, &classLoader->inFrequentlyAccessedBlock, classLoader->inFrequentlyAccessedBlock.ramClassUDATABlockFreeList);
 			}
 			prev = request;
@@ -4392,18 +4553,24 @@ internalAllocateRAMClass(J9JavaVM *javaVM, J9ClassLoader *classLoader, RAMClassA
 	/* If any fragments remain unallocated, allocate a new segment to (at least) fit them */
 	if (fragmentsLeftToAllocate)
 	{
+		printf("[ClassMem] remaining after free lists = %zu (SUB4G first)\n", (size_t)fragmentsLeftToAllocate);
 		memoryAllocationSuccess = allocateRemainingFragments(requests, allocationRequestCount, javaVM, classLoader, allocationRequests, &classLoader->sub4gBlock, classLoader->sub4gBlock.ramClassUDATABlockFreeList, SUB4G);
 		if(!memoryAllocationSuccess) {
+			printf("[ClassMem] allocateRemainingFragments FAIL for SUB4G\n");
 			return NULL;
 		}
 		if (isNotLoadedByAnonClassLoader) {
+			printf("[ClassMem] remaining pass for FREQUENTLY_ACCESSED\n");
 			memoryAllocationSuccess = allocateRemainingFragments(requests, allocationRequestCount, javaVM, classLoader, allocationRequests, &classLoader->frequentlyAccessedBlock, classLoader->frequentlyAccessedBlock.ramClassUDATABlockFreeList, FREQUENTLY_ACCESSED);
 			if(!memoryAllocationSuccess) {
+				printf("[ClassMem] allocateRemainingFragments FAIL for FREQUENTLY_ACCESSED\n");
 				return NULL;
 			}
+			printf("[ClassMem] remaining pass for INFREQUENTLY_ACCESSED\n");
 			memoryAllocationSuccess = allocateRemainingFragments(requests, allocationRequestCount, javaVM, classLoader, allocationRequests, &classLoader->inFrequentlyAccessedBlock, classLoader->inFrequentlyAccessedBlock.ramClassUDATABlockFreeList, INFREQUENTLY_ACCESSED);
 
 			if(!memoryAllocationSuccess) {
+				printf("[ClassMem] allocateRemainingFragments FAIL for INFREQUENTLY_ACCESSED\n");
 				return NULL;
 			}
 		}
@@ -4430,6 +4597,10 @@ internalAllocateRAMClass(J9JavaVM *javaVM, J9ClassLoader *classLoader, RAMClassA
 
 	omrthread_monitor_exit(javaVM->classMemorySegments->segmentMutex);
 
+	printf("[ClassMem] internalAllocateRAMClass: firstFrag=%p -> segment=%p heapBase=%p heapTop=%p\n",
+           (void*)classStart, (void*)segment,
+           segment ? segment->heapBase : NULL,
+           segment ? segment->heapTop : NULL);
 	Trc_VM_internalAllocateRAMClass_Exit(classStart, segment);
 	return segment;
 }
