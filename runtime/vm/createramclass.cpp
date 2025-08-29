@@ -4366,9 +4366,9 @@ allocateRemainingFragments(RAMClassAllocationRequest *requests, UDATA allocation
 		coalesceAllFreeLists(j9RamClassFreeList);
 
 		UDATA memoryType = MEMORY_TYPE_RAM_CLASS;
-		if (SUB4G == segmentKind) {
+		//if (SUB4G == segmentKind) {
 			memoryType |= MEMORY_TYPE_RAM_CLASS_SUB4G;
-		}
+		//}
 		Trc_VM_internalAllocateRAMClass_AllocateClassMemorySegment(fragmentsLeftToAllocate, newSegmentSize, classAllocationIncrement);
 		newSegment = allocateClassMemorySegment(javaVM, newSegmentSize, memoryType, classLoader, classAllocationIncrement);
 
