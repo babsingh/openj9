@@ -3110,7 +3110,7 @@ fail:
 			allocationRequests[RAM_CONSTANT_POOL_FRAGMENT].alignment = REQUIRED_CONSTANT_POOL_ALIGNMENT;
 			allocationRequests[RAM_CONSTANT_POOL_FRAGMENT].alignedSize = romClass->ramConstantPoolCount * 2 * sizeof(UDATA);
 			allocationRequests[RAM_CONSTANT_POOL_FRAGMENT].address = NULL;
-			allocationRequests[RAM_CONSTANT_POOL_FRAGMENT].segmentKind = INFREQUENTLY_ACCESSED;
+			allocationRequests[RAM_CONSTANT_POOL_FRAGMENT].segmentKind = SUB4G;
 
 			/* call sites fragment */
 			allocationRequests[RAM_CALL_SITES_FRAGMENT].prefixSize = 0;
