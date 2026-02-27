@@ -311,17 +311,17 @@ final class JFRHelpers {
 			long delayNanos = 0;
 			long durationNanos = 0;
 
-			if (delayStr != null && !delayStr.isEmpty()) {
+			if ((delayStr != null) && !delayStr.isEmpty()) {
 				delayNanos = convertToNanoSeconds(delayStr);
 				System.setProperty("openj9.jfr.cmdline.startflightrecording.delay", String.valueOf(delayNanos));
 			}
 
-			if (durationStr != null && !durationStr.isEmpty()) {
+			if ((durationStr != null) && !durationStr.isEmpty()) {
 				durationNanos = convertToNanoSeconds(durationStr);
 				System.setProperty("openj9.jfr.cmdline.startflightrecording.duration", String.valueOf(durationNanos));
 			}
 
-			if (filenameStr != null && !filenameStr.isEmpty()) {
+			if ((filenameStr != null) && !filenameStr.isEmpty()) {
 				System.setProperty("openj9.jfr.cmdline.startflightrecording.filename", filenameStr);
 			}
 
@@ -342,12 +342,12 @@ final class JFRHelpers {
 				if (delayNanos > 0) {
 					long delayMillis = delayNanos / 1_000_000;
 					long delayNanosRemainder = delayNanos % 1_000_000;
-					Thread.sleep(delayMillis, (int) delayNanosRemainder);
+					Thread.sleep(delayMillis, (int)delayNanosRemainder);
 				}
 
 				int result = VM.startJFR();
 
-				if (result == 0 && durationNanos > 0) {
+				if ((result == 0) && durationNanos > 0) {
 					scheduleJFRStop(durationNanos);
 				}
 			} catch (InterruptedException e) {
@@ -369,7 +369,7 @@ final class JFRHelpers {
 				long durationMillis = durationNanos / 1_000_000;
 				long durationNanosRemainder = durationNanos % 1_000_000;
 
-				Thread.sleep(durationMillis, (int) durationNanosRemainder);
+				Thread.sleep(durationMillis, (int)durationNanosRemainder);
 
 				VM.stopJFR();
 				VM.jfrDump();

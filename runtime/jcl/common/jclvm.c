@@ -122,7 +122,7 @@ jint JNICALL Java_com_ibm_oti_vm_VM_getClassPathCount(JNIEnv * env, jclass clazz
  * static void allInstances (Class, Object[])
  */
 jint JNICALL
-Java_com_ibm_oti_vm_VM_allInstances(JNIEnv * env, jclass unused, jclass clazz, jobjectArray target )
+Java_com_ibm_oti_vm_VM_allInstances(JNIEnv *env, jclass unused, jclass clazz, jobjectArray target)
 {
 	jint count = 0;
 	J9VMThread *vmThread = (J9VMThread *) env;
@@ -318,7 +318,7 @@ printHeapStatistics(JNIEnv *env,J9HeapStatisticsTableEntry **statsArray,
  * The bytes being set already could happen frequently as this primitive will be used repeatedly to remerge strings in the runtime
 */
 jint JNICALL
-Java_com_ibm_oti_vm_VM_setCommonData(JNIEnv * env, jclass unused, jobject string1, jobject string2 )
+Java_com_ibm_oti_vm_VM_setCommonData(JNIEnv *env, jclass unused, jobject string1, jobject string2)
 {
 	UDATA allowMerge = 0;
 	J9VMThread *vmThread = (J9VMThread *) env;
@@ -365,7 +365,7 @@ Java_com_ibm_oti_vm_VM_setCommonData(JNIEnv * env, jclass unused, jobject string
 
 
 static UDATA
-allInstances (JNIEnv * env, jclass clazz, jobjectArray target)
+allInstances(JNIEnv *env, jclass clazz, jobjectArray target)
 {
 	J9VMThread *vmThread = (J9VMThread *) env;
 	AllInstancesData data;
@@ -408,7 +408,7 @@ collectInstances (J9JavaVM *vm, J9MM_IterateObjectDescriptor *objDesc, void *sta
 	if (J9OBJECT_CLAZZ_VM(vm, obj) == data->clazz) {
 		data->instanceCount++;
 		 /* fill in the array only if one was passed in */
-		if (data->target != NULL) {
+		if (NULL != data->target) {
 			 /* if no room, you can ignore the object and not store it */
 			if (data->storeIndex < data->size) {
  				J9JAVAARRAYOFOBJECT_STORE_VM(vm, data->target, (I_32)data->storeIndex, obj);
@@ -574,7 +574,7 @@ Java_com_ibm_oti_vm_VM_dumpString(JNIEnv * env, jclass clazz, jstring str)
 jstring JNICALL
 Java_com_ibm_oti_vm_VM_getjfrCMDLineOption(JNIEnv *env, jclass clazz)
 {
-	J9JavaVM *javaVM = ((J9VMThread *) env)->javaVM;
+	J9JavaVM *javaVM = ((J9VMThread *)env)->javaVM;
 	jstring jfrOption = NULL;
 	if (NULL != javaVM->jfrState.jfrCMDLineOption) {
 		jfrOption = (*env)->NewStringUTF(env, javaVM->jfrState.jfrCMDLineOption);
@@ -584,7 +584,7 @@ Java_com_ibm_oti_vm_VM_getjfrCMDLineOption(JNIEnv *env, jclass clazz)
 jstring JNICALL
 Java_com_ibm_oti_vm_VM_getJfrDelay(JNIEnv *env, jclass clazz)
 {
-	J9JavaVM *javaVM = ((J9VMThread *) env)->javaVM;
+	J9JavaVM *javaVM = ((J9VMThread *)env)->javaVM;
 	jstring jfrDelay = NULL;
 	if (NULL != javaVM->jfrState.delay) {
 		jfrDelay = (*env)->NewStringUTF(env, javaVM->jfrState.delay);
@@ -595,7 +595,7 @@ Java_com_ibm_oti_vm_VM_getJfrDelay(JNIEnv *env, jclass clazz)
 jstring JNICALL
 Java_com_ibm_oti_vm_VM_getJfrDuration(JNIEnv *env, jclass clazz)
 {
-	J9JavaVM *javaVM = ((J9VMThread *) env)->javaVM;
+	J9JavaVM *javaVM = ((J9VMThread *)env)->javaVM;
 	jstring jfrDuration = NULL;
 	if (NULL != javaVM->jfrState.duration) {
 		jfrDuration = (*env)->NewStringUTF(env, javaVM->jfrState.duration);
@@ -606,7 +606,7 @@ Java_com_ibm_oti_vm_VM_getJfrDuration(JNIEnv *env, jclass clazz)
 jstring JNICALL
 Java_com_ibm_oti_vm_VM_getJfrRecordingFileName(JNIEnv *env, jclass clazz)
 {
-	J9JavaVM *javaVM = ((J9VMThread *) env)->javaVM;
+	J9JavaVM *javaVM = ((J9VMThread *)env)->javaVM;
 	jstring jfrFileName = NULL;
 	if (NULL != javaVM->jfrState.jfrFileName) {
 		jfrFileName = (*env)->NewStringUTF(env, javaVM->jfrState.jfrFileName);
@@ -617,8 +617,8 @@ Java_com_ibm_oti_vm_VM_getJfrRecordingFileName(JNIEnv *env, jclass clazz)
 jboolean JNICALL
 Java_com_ibm_oti_vm_VM_isStartFlightRecordingSpecified(JNIEnv *env, jclass clazz)
 {
-	J9JavaVM *javaVM = ((J9VMThread *) env)->javaVM;
-	/* Check if the J9_EXTENDED_RUNTIME3_START_FLIGHT_RECORDING flag is set */
+	J9JavaVM *javaVM = ((J9VMThread *)env)->javaVM;
+	/* Check if the J9_EXTENDED_RUNTIME3_START_FLIGHT_RECORDING flag is set. */
 	return J9_ARE_ANY_BITS_SET(javaVM->extendedRuntimeFlags3, J9_EXTENDED_RUNTIME3_START_FLIGHT_RECORDING) ? JNI_TRUE : JNI_FALSE;
 }
 
