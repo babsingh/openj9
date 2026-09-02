@@ -27,6 +27,8 @@
 #include <setjmp.h>
 #endif /* JAVA_SPEC_VERSION >= 16 */
 
+#include <errno.h>
+
 extern "C" {
 
 #if JAVA_SPEC_VERSION >= 16
@@ -72,6 +74,8 @@ ffiCallWithSetJmpForUpcall(J9VMThread *currentThread, ffi_cif *cif, void *functi
 #else /* FFI_NATIVE_RAW_API */
 		ffi_call(cif, FFI_FN(function), returnStorage, values);
 #endif /* FFI_NATIVE_RAW_API */
+
+		fprintf(stderr, "C: after ffi_call errno=%d\n", errno);
 	}
 	currentThread->jmpBufEnvPtr = jmpBufEnvPtr;
 }

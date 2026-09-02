@@ -24,6 +24,7 @@
 #define FOREIGNCALLHELPERS_HPP_
 
 #include "j9cfg.h"
+#include "ut_j9vm.h"
 
 #if JAVA_SPEC_VERSION >= 21
 #include <errno.h>
@@ -71,7 +72,10 @@ public:
 	static VMINLINE void
 	restoreCapturedCallState(I_32 *returnState, I_32 capturedCallStateMask)
 	{
+		fprintf(stderr, "A: before restore errno=%d\n", errno);
+
 		if (NULL != returnState) {
+			Assert_VM_true(J9_ARE_ANY_BITS_SET(capturedCallStateMask, DowncallCapturableState::J9_CAPTURE_ERRNO));
 #if defined(WIN32)
 			if (J9_ARE_ANY_BITS_SET(capturedCallStateMask, J9_CAPTURE_GET_LAST_ERROR)) {
 				SetLastError((DWORD)returnState[0]);
@@ -90,6 +94,8 @@ public:
 			}
 #endif /* defined(WIN32) */
 		}
+
+		fprintf(stderr, "B: after restore errno=%d\n", errno);
 	}
 #endif /* JAVA_SPEC_VERSION >= 25 */
 
@@ -105,6 +111,8 @@ public:
 	static VMINLINE void
 	storeCapturedCallState(I_32 *returnState, I_32 capturedCallStateMask)
 	{
+		fprintf(stderr, "D: after ffiCallWithSetJmpForUpcall errno=%d\n", errno);
+
 		if (NULL != returnState) {
 #if defined(WIN32)
 			if (J9_ARE_ANY_BITS_SET(capturedCallStateMask, J9_CAPTURE_GET_LAST_ERROR)) {
@@ -122,6 +130,8 @@ public:
 			if (J9_ARE_ANY_BITS_SET(capturedCallStateMask, J9_CAPTURE_ERRNO)) {
 				returnState[0] = errno;
 			}
+
+			fprintf(stderr, "E: stored=%d errno=%d\n", returnState[0], errno);
 #endif /* defined(WIN32) */
 		}
 	}
