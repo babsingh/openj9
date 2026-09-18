@@ -22,10 +22,15 @@
 
 #include "ut_j9vm.h"
 #include "vm_internal.h"
+
 #if JAVA_SPEC_VERSION >= 16
 #include "ffi.h"
 #include <setjmp.h>
 #endif /* JAVA_SPEC_VERSION >= 16 */
+
+#if JAVA_SPEC_VERSION >= 21
+#include "ForeignCallHelpers.hpp"
+#endif /* JAVA_SPEC_VERSION >= 21 */
 
 extern "C" {
 
@@ -50,11 +55,15 @@ extern "C" {
  */
 void
 #if FFI_NATIVE_RAW_API
-ffiCallWithSetJmpForUpcall(J9VMThread *currentThread, ffi_cif *cif, void *function, UDATA *returnStorage, void **values, ffi_raw *values_raw)
+ffiCallWithSetJmpForUpcall(J9VMThread *currentThread, ffi_cif *cif, void *function, UDATA *returnStorage, void **values, I_32 capturedCallStateMask, I_32 *returnState, ffi_raw *values_raw)
 #else /* FFI_NATIVE_RAW_API */
-ffiCallWithSetJmpForUpcall(J9VMThread *currentThread, ffi_cif *cif, void *function, UDATA *returnStorage, void **values)
+ffiCallWithSetJmpForUpcall(J9VMThread *currentThread, ffi_cif *cif, void *function, UDATA *returnStorage, void **values, I_32 capturedCallStateMask, I_32 *returnState)
 #endif /* FFI_NATIVE_RAW_API */
 {
+#if JAVA_SPEC_VERSION >= 25
+	ForeignCallHelpers::restoreCapturedCallState(returnState, capturedCallStateMask);
+#endif /* JAVA_SPEC_VERSION >= 25 */
+
 	jmp_buf jmpBufferEnv = {};
 	void *jmpBufEnvPtr = currentThread->jmpBufEnvPtr;
 
@@ -74,6 +83,10 @@ ffiCallWithSetJmpForUpcall(J9VMThread *currentThread, ffi_cif *cif, void *functi
 #endif /* FFI_NATIVE_RAW_API */
 	}
 	currentThread->jmpBufEnvPtr = jmpBufEnvPtr;
+
+#if JAVA_SPEC_VERSION >= 21
+	ForeignCallHelpers::storeCapturedCallState(returnState, capturedCallStateMask);
+#endif /* JAVA_SPEC_VERSION >= 21 */
 }
 
 /**
